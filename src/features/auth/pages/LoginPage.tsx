@@ -122,10 +122,18 @@ export const LoginPage: React.FC = () => {
                </div>
 
                <div className="flex items-center gap-3">
-                  <button className="w-9 h-9 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors">
+                  <button
+                     className="w-9 h-9 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-novara-500"
+                     title="Select Language"
+                     aria-label="Select Language"
+                  >
                      <Globe size={18} />
                   </button>
-                  <button className="w-9 h-9 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors">
+                  <button
+                     className="w-9 h-9 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-novara-500"
+                     title="Help"
+                     aria-label="Help"
+                  >
                      <HelpCircle size={18} />
                   </button>
                </div>
@@ -174,7 +182,8 @@ export const LoginPage: React.FC = () => {
                            <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+                              className="text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-novara-500 rounded-full p-1 transition-colors"
+                              aria-label={showPassword ? "Hide password" : "Show password"}
                            >
                               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                            </button>
