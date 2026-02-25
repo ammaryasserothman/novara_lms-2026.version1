@@ -13,7 +13,11 @@ interface CourseCardProps {
     showProgress?: boolean;
 }
 
-export const CourseCard: React.FC<CourseCardProps> = ({
+/**
+ * Optimized CourseCard with memoization to prevent unnecessary re-renders
+ * during search/filter operations in parent lists.
+ */
+export const CourseCard = React.memo<CourseCardProps>(({
     course,
     progress,
     layout = 'grid',
@@ -277,4 +281,6 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             </div>
         </Card >
     );
-};
+});
+
+CourseCard.displayName = 'CourseCard';
