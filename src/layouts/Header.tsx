@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Bell, Search, Menu, ChevronRight, X } from 'lucide-react';
-import { User, Course } from '../types';
+import { User } from '../types';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../utils/cn';
 import { useGlobal } from '../context/GlobalContext';
@@ -94,13 +94,9 @@ export const Header: React.FC<HeaderProps> = ({ user, onMenuClick, scrolled }) =
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Reset selected index when query changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [searchQuery]);
-
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
+    setSelectedIndex(0);
     setIsSearchOpen(true);
   };
 
