@@ -1,0 +1,3 @@
+## 2024-05-19 - Removed unnecessary useEffects triggering re-renders
+**Learning:** React patterns that synchronize derived state (like `isPasswordWeak` from `formData.password`) using `useEffect` trigger cascading renders, decreasing performance. Similarly, resetting related component state based on input change (`searchQuery`) within an effect instead of the input's `onChange` handler does the same. Both violate React 18+ best practices (https://react.dev/learn/you-might-not-need-an-effect).
+**Action:** Always derive variables during render if possible. Move state updates that belong to specific events into their respective event handlers instead of passive `useEffect` synchronization.

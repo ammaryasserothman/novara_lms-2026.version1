@@ -40,19 +40,10 @@ export const SignupPage: React.FC = () => {
    });
 
    // Live Password Validation State
-   const [isPasswordWeak, setIsPasswordWeak] = useState(true);
-
-
-   // Handle Real-time Validation
-   useEffect(() => {
-      // Check password strength logic matches the meter's requirements
-      const isWeak =
-         formData.password.length < 8 ||
-         !/\d/.test(formData.password) ||
-         !/[A-Z]/.test(formData.password);
-
-      setIsPasswordWeak(isWeak);
-   }, [formData.password]);
+   const isPasswordWeak =
+      formData.password.length < 8 ||
+      !/\d/.test(formData.password) ||
+      !/[A-Z]/.test(formData.password);
 
 
    const handleSignup = async (e: React.FormEvent) => {

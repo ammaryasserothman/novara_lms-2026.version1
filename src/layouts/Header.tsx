@@ -94,14 +94,10 @@ export const Header: React.FC<HeaderProps> = ({ user, onMenuClick, scrolled }) =
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Reset selected index when query changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [searchQuery]);
-
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setIsSearchOpen(true);
+    setSelectedIndex(0);
   };
 
   const handleCourseClick = (courseId: string) => {
