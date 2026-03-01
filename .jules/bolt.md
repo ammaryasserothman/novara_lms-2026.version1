@@ -1,0 +1,3 @@
+## 2024-05-18 - [Dashboard State Optimization]
+**Learning:** Derived states dependent on global context values (like `courses` or `enrollments`) are vulnerable to frequent and expensive re-renders in this React architecture. The `Dashboard` component was performing multiple O(N) `find`, `filter`, and `map` operations over these large lists directly in the render body. When the global context is updated, all consumers re-render, leading to poor performance.
+**Action:** Aggressively wrap these derived state calculations in `React.useMemo`, using the context values as dependencies. Also, ensure early returns (e.g. `if (!user) return null;`) are placed *after* any hooks to adhere to the rules of hooks.
