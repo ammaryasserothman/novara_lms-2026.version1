@@ -9,7 +9,7 @@ import { WelcomeBanner } from '../../../components/dashboard/WelcomeBanner';
 import { StatsOverview } from '../../../components/dashboard/StatsOverview';
 import { ActiveCourseHero } from '../../../components/dashboard/ActiveCourseHero';
 import { RecommendedList } from '../../../components/dashboard/RecommendedList';
-import { BookOpen, TrendingUp, Clock, Calendar as CalendarIcon, MoreHorizontal } from 'lucide-react';
+import { BookOpen, TrendingUp } from 'lucide-react';
 import { RecentTimeline } from '../../../components/dashboard/RecentTimeline';
 
 // --- MOCK ENTERPRISE WIDGETS ---
@@ -48,25 +48,34 @@ export const Dashboard: React.FC = () => {
    const { courses, enrollments, getRecommendedCourses } = useGlobal();
    const navigate = useNavigate();
 
+   // ⚡ Bolt: Memoize derived course state to prevent O(N) recalculations on unrelated global state changes (e.g. notifications)
+   const { activeCourse, activeEnrollment, otherEnrolledCourses, enrolledCourseIds } = React.useMemo(() => {
+      const ids = Object.keys(enrollments || {});
+      const activeKey = ids.find(id => enrollments[id]?.status === 'in_progress') || ids[0];
+      const activeC = activeKey ? courses?.find(c => c.id === activeKey) : undefined;
+      const activeE = activeKey ? enrollments[activeKey] : null;
+
+      const others = ids
+         .filter(id => id !== activeKey)
+         .map(id => {
+            const course = courses?.find(c => c.id === id);
+            return course ? { ...course, progress: enrollments[id]?.progress || 0 } : null;
+         })
+         .filter((c): c is (Course & { progress: number }) => c !== null)
+         .slice(0, 2);
+
+      return {
+         activeCourse: activeC,
+         activeEnrollment: activeE,
+         otherEnrolledCourses: others,
+         enrolledCourseIds: ids
+      };
+   }, [courses, enrollments]);
+
+   const recommendations = React.useMemo(() => getRecommendedCourses(), [getRecommendedCourses]);
+
+   // ⚡ Bolt: Early return moved BELOW all hooks to obey React Rules of Hooks
    if (!user) return null;
-
-   // Logic: Get Active Course (Most recently accessed or highest progress < 100)
-   const enrolledCourseIds = Object.keys(enrollments);
-   const activeEnrollmentKey = enrolledCourseIds.find(id => enrollments[id].status === 'in_progress') || enrolledCourseIds[0];
-   const activeCourse = courses.find(c => c.id === activeEnrollmentKey);
-   const activeEnrollment = activeEnrollmentKey ? enrollments[activeEnrollmentKey] : null;
-
-   // Logic: Get other enrolled courses (Max 2 for display)
-   const otherEnrolledCourses = enrolledCourseIds
-      .filter(id => id !== activeEnrollmentKey)
-      .map(id => {
-         const course = courses.find(c => c.id === id);
-         return course ? { ...course, progress: enrollments[id].progress } : null;
-      })
-      .filter((c): c is (Course & { progress: number }) => c !== null)
-      .slice(0, 2);
-
-   const recommendations = getRecommendedCourses();
 
    return (
       <div className="space-y-8 font-sans text-slate-600 animate-fade-in">
