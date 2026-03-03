@@ -1,0 +1,3 @@
+## 2024-03-03 - Context Re-render Bottleneck
+**Learning:** `useGlobal` Context in this app groups many independent states (courses, enrollments, notifications, bookmarks). Reading from it in `Dashboard.tsx` without memoization causes expensive array derivations (`activeCourse`, `otherEnrolledCourses`, `recommendations`) to recalculate on ANY unrelated state change (like a new notification or bookmark toggle).
+**Action:** Always wrap derived collections/state from `useGlobal` in `React.useMemo` within components that consume it. Ensure early returns (like `if (!user)`) occur *after* hooks, and place safety null-checks *inside* the `useMemo` block.
