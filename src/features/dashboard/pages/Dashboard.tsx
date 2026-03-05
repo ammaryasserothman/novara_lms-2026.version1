@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { useAuth } from '../../../context/AuthContext';
@@ -9,7 +9,7 @@ import { WelcomeBanner } from '../../../components/dashboard/WelcomeBanner';
 import { StatsOverview } from '../../../components/dashboard/StatsOverview';
 import { ActiveCourseHero } from '../../../components/dashboard/ActiveCourseHero';
 import { RecommendedList } from '../../../components/dashboard/RecommendedList';
-import { BookOpen, TrendingUp, Clock, Calendar as CalendarIcon, MoreHorizontal } from 'lucide-react';
+import { BookOpen, TrendingUp } from 'lucide-react';
 import { RecentTimeline } from '../../../components/dashboard/RecentTimeline';
 
 // --- MOCK ENTERPRISE WIDGETS ---
@@ -48,25 +48,51 @@ export const Dashboard: React.FC = () => {
    const { courses, enrollments, getRecommendedCourses } = useGlobal();
    const navigate = useNavigate();
 
+   // Memoize complex course filtering and sorting logic
+   const dashboardData = useMemo(() => {
+      if (!user || !enrollments || !courses) {
+         return {
+            enrolledCourseIds: [],
+            activeCourse: undefined,
+            activeEnrollment: null,
+            otherEnrolledCourses: []
+         };
+      }
+
+      const enrolledCourseIds = Object.keys(enrollments);
+      const activeEnrollmentKey = enrolledCourseIds.find(id => enrollments[id].status === 'in_progress') || enrolledCourseIds[0];
+      const activeCourse = courses.find(c => c.id === activeEnrollmentKey);
+      const activeEnrollment = activeEnrollmentKey ? enrollments[activeEnrollmentKey] : null;
+
+      const otherEnrolledCourses = enrolledCourseIds
+         .filter(id => id !== activeEnrollmentKey)
+         .map(id => {
+            const course = courses.find(c => c.id === id);
+            return course ? { ...course, progress: enrollments[id].progress } : null;
+         })
+         .filter((c): c is (Course & { progress: number }) => c !== null)
+         .slice(0, 2);
+
+      return {
+         enrolledCourseIds,
+         activeCourse,
+         activeEnrollment,
+         otherEnrolledCourses
+      };
+   }, [user, enrollments, courses]);
+
+   // We memoize recommendations separately so that it doesn't recalculate
+   // every time dashboardData changes, but depends on courses and enrollments.
+   // getRecommendedCourses creates a new array every time, so we wrap the call.
+   const recommendations = useMemo(() => {
+      if (!user) return [];
+      return getRecommendedCourses();
+   }, [user, getRecommendedCourses]); // using enrollments and courses directly since getRecommendedCourses internally depends on them but is unmemoized
+
+   // Early return strictly AFTER hooks per React Rules of Hooks
    if (!user) return null;
 
-   // Logic: Get Active Course (Most recently accessed or highest progress < 100)
-   const enrolledCourseIds = Object.keys(enrollments);
-   const activeEnrollmentKey = enrolledCourseIds.find(id => enrollments[id].status === 'in_progress') || enrolledCourseIds[0];
-   const activeCourse = courses.find(c => c.id === activeEnrollmentKey);
-   const activeEnrollment = activeEnrollmentKey ? enrollments[activeEnrollmentKey] : null;
-
-   // Logic: Get other enrolled courses (Max 2 for display)
-   const otherEnrolledCourses = enrolledCourseIds
-      .filter(id => id !== activeEnrollmentKey)
-      .map(id => {
-         const course = courses.find(c => c.id === id);
-         return course ? { ...course, progress: enrollments[id].progress } : null;
-      })
-      .filter((c): c is (Course & { progress: number }) => c !== null)
-      .slice(0, 2);
-
-   const recommendations = getRecommendedCourses();
+   const { enrolledCourseIds, activeCourse, activeEnrollment, otherEnrolledCourses } = dashboardData;
 
    return (
       <div className="space-y-8 font-sans text-slate-600 animate-fade-in">
