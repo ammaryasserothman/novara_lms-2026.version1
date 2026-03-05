@@ -48,25 +48,55 @@ export const Dashboard: React.FC = () => {
    const { courses, enrollments, getRecommendedCourses } = useGlobal();
    const navigate = useNavigate();
 
+   // ⚡ Bolt: Memoize expensive derived states to prevent recalculation on every render
+   // Note: We use useMemo before the early return to comply with Rules of Hooks,
+   // but check for `user` inside the memo callbacks or rely on context defaults.
+   const {
+      enrolledCourseIds,
+      activeCourse,
+      activeEnrollment,
+      otherEnrolledCourses
+   } = React.useMemo(() => {
+      if (!user || !enrollments || !courses) {
+         return {
+            enrolledCourseIds: [],
+            activeCourse: undefined,
+            activeEnrollment: null,
+            otherEnrolledCourses: []
+         };
+      }
+
+      // Logic: Get Active Course (Most recently accessed or highest progress < 100)
+      const enrolledCourseIds = Object.keys(enrollments);
+      const activeEnrollmentKey = enrolledCourseIds.find(id => enrollments[id].status === 'in_progress') || enrolledCourseIds[0];
+      const activeCourse = courses.find(c => c.id === activeEnrollmentKey);
+      const activeEnrollment = activeEnrollmentKey ? enrollments[activeEnrollmentKey] : null;
+
+      // Logic: Get other enrolled courses (Max 2 for display)
+      const otherEnrolledCourses = enrolledCourseIds
+         .filter(id => id !== activeEnrollmentKey)
+         .map(id => {
+            const course = courses.find(c => c.id === id);
+            return course ? { ...course, progress: enrollments[id].progress } : null;
+         })
+         .filter((c): c is (Course & { progress: number }) => c !== null)
+         .slice(0, 2);
+
+      return {
+         enrolledCourseIds,
+         activeCourse,
+         activeEnrollment,
+         otherEnrolledCourses
+      };
+   }, [user, enrollments, courses]);
+
+   // ⚡ Bolt: Memoize recommendations, relying on underlying data instead of function reference
+   const recommendations = React.useMemo(() => {
+      if (!user || !courses || !enrollments) return [];
+      return getRecommendedCourses();
+   }, [user, courses, enrollments, getRecommendedCourses]);
+
    if (!user) return null;
-
-   // Logic: Get Active Course (Most recently accessed or highest progress < 100)
-   const enrolledCourseIds = Object.keys(enrollments);
-   const activeEnrollmentKey = enrolledCourseIds.find(id => enrollments[id].status === 'in_progress') || enrolledCourseIds[0];
-   const activeCourse = courses.find(c => c.id === activeEnrollmentKey);
-   const activeEnrollment = activeEnrollmentKey ? enrollments[activeEnrollmentKey] : null;
-
-   // Logic: Get other enrolled courses (Max 2 for display)
-   const otherEnrolledCourses = enrolledCourseIds
-      .filter(id => id !== activeEnrollmentKey)
-      .map(id => {
-         const course = courses.find(c => c.id === id);
-         return course ? { ...course, progress: enrollments[id].progress } : null;
-      })
-      .filter((c): c is (Course & { progress: number }) => c !== null)
-      .slice(0, 2);
-
-   const recommendations = getRecommendedCourses();
 
    return (
       <div className="space-y-8 font-sans text-slate-600 animate-fade-in">
