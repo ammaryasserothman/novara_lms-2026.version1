@@ -1,0 +1,3 @@
+## 2025-03-07 - React Context & Memoization Dependencies
+**Learning:** Functions provided by context (like `getRecommendedCourses`) that generate fresh arrays on every call must not be memoized purely on their function reference. Instead, `React.useMemo` must explicitly declare dependencies on the underlying data (`courses`, `enrollments`) to prevent recalculation bypass.
+**Action:** When working with context-derived state arrays/objects, aggressively wrap them in `React.useMemo` and ensure data sources (`courses`, `enrollments`, etc.) are included in the dependency array to correctly optimize frequent context-driven re-renders.
