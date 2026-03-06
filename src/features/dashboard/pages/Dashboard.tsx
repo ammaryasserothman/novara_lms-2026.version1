@@ -9,7 +9,7 @@ import { WelcomeBanner } from '../../../components/dashboard/WelcomeBanner';
 import { StatsOverview } from '../../../components/dashboard/StatsOverview';
 import { ActiveCourseHero } from '../../../components/dashboard/ActiveCourseHero';
 import { RecommendedList } from '../../../components/dashboard/RecommendedList';
-import { BookOpen, TrendingUp, Clock, Calendar as CalendarIcon, MoreHorizontal } from 'lucide-react';
+import { BookOpen, TrendingUp } from 'lucide-react';
 import { RecentTimeline } from '../../../components/dashboard/RecentTimeline';
 
 // --- MOCK ENTERPRISE WIDGETS ---
@@ -45,7 +45,7 @@ const AnalyticsWidget = () => (
 
 export const Dashboard: React.FC = () => {
    const { user } = useAuth();
-   const { courses, enrollments, getRecommendedCourses } = useGlobal();
+   const { courses, enrollments, recommendedCourses } = useGlobal();
    const navigate = useNavigate();
 
    if (!user) return null;
@@ -65,8 +65,6 @@ export const Dashboard: React.FC = () => {
       })
       .filter((c): c is (Course & { progress: number }) => c !== null)
       .slice(0, 2);
-
-   const recommendations = getRecommendedCourses();
 
    return (
       <div className="space-y-8 font-sans text-slate-600 animate-fade-in">
@@ -130,7 +128,7 @@ export const Dashboard: React.FC = () => {
             {/* --- SIDEBAR (Right 4 cols) --- */}
             <div className="xl:col-span-4 space-y-8">
                <RecentTimeline />
-               <RecommendedList recommendations={recommendations} />
+               <RecommendedList recommendations={recommendedCourses} />
             </div>
          </div>
       </div>
