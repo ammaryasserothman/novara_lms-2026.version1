@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import { User, Course, Enrollment, Notification, Achievement } from '../types';
 import { COURSES as STATIC_COURSES, CURRENT_USER } from '../data/mockData';
 
@@ -45,7 +45,7 @@ interface GlobalContextType {
    * AI-driven algorithm to get course recommendations.
    * Logic: Suggests courses in the same category as completed ones, or popular ones.
    */
-  getRecommendedCourses: () => Course[];
+  recommendedCourses: Course[];
   /**
    * Returns the next incomplete lesson ID for a course.
    * @param courseId The ID of the course
@@ -175,8 +175,8 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return enrollments[courseId]?.progress || 0;
   };
 
-  // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
+  // Simple "AI" Recommendation Engine (Memoized)
+  const recommendedCourses = useMemo(() => {
     // 1. Get user categories from enrolled courses
     const enrolledIds = Object.keys(enrollments);
     const userCategories = enrolledIds
@@ -192,7 +192,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return bMatch - aMatch; // Descending match
       })
       .slice(0, 2); // Return top 2
-  };
+  }, [enrollments, courses]);
 
   // Logic to find the next playable video
   const getNextLesson = (courseId: string): string | null => {
@@ -221,7 +221,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       toggleBookmark,
       markNotificationRead,
       getCourseProgress,
-      getRecommendedCourses,
+      recommendedCourses,
       getNextLesson
     }}>
       {children}

@@ -1,0 +1,3 @@
+## 2024-05-19 - Context-bound Array Re-renders
+**Learning:** Functions defined inside a React context provider that generate fresh arrays (like `getRecommendedCourses()` returning `.map().filter().sort()`) create new object references on every render. Any consumer that uses this array will trigger unnecessary re-renders downstream, even if the underlying data (courses, enrollments) hasn't changed.
+**Action:** Always refactor derived, expensive array/object computations in React Contexts into `useMemo` blocks, and export the memoized value instead of a getter function. Make sure to accurately track data sources (e.g. `[enrollments, courses]`) in the dependency array.
