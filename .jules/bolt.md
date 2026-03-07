@@ -1,0 +1,3 @@
+## 2024-10-24 - Context-Driven Re-renders & Memoization
+**Learning:** The application heavily relies on a global context (`useGlobal`), which causes components like Dashboard to re-render on any context change (e.g., when notifications arrive or bookmarks change). If derived states and array-returning context functions (like `getRecommendedCourses()`) are not memoized, this triggers expensive nested loop recalculations even when the underlying `courses` and `enrollments` data hasn't changed.
+**Action:** Aggressively wrap derived states in `React.useMemo`, ensuring the dependencies array includes the actual underlying data sources (like `courses`, `enrollments`) rather than function references, to prevent unnecessary work during frequent context updates.
