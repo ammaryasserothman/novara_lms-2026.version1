@@ -1,0 +1,3 @@
+## 2024-05-18 - Avoid computing derived states unconditionally in context-driven components
+**Learning:** React context changes (such as updates to `enrollments` via `useGlobal`) trigger renders on all components consuming that context. When heavy operations like `.filter()`, `.map()`, and object key extraction are left outside of a `useMemo` block, these operations are needlessly executed on every render, even when unaffected values change.
+**Action:** Always wrap expensive derived calculations—especially those mapping over arrays or objects coming from global contexts—in `React.useMemo`. Make sure to safely handle `null` or `undefined` within the memoization block to adhere to React Hook rules regarding conditional returns.
