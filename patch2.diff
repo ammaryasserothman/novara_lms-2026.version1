@@ -1,0 +1,11 @@
+--- src/features/dashboard/pages/Dashboard.tsx
++++ src/features/dashboard/pages/Dashboard.tsx
+@@ -9,7 +9,7 @@
+ import { StatsOverview } from '../../../components/dashboard/StatsOverview';
+ import { ActiveCourseHero } from '../../../components/dashboard/ActiveCourseHero';
+ import { RecommendedList } from '../../../components/dashboard/RecommendedList';
+-import { BookOpen, TrendingUp, Clock, Calendar as CalendarIcon, MoreHorizontal } from 'lucide-react';
++import { BookOpen, TrendingUp } from 'lucide-react';
+ import { RecentTimeline } from '../../../components/dashboard/RecentTimeline';
+
+ // --- MOCK ENTERPRISE WIDGETS ---
