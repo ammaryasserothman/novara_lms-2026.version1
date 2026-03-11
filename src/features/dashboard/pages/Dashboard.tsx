@@ -9,7 +9,7 @@ import { WelcomeBanner } from '../../../components/dashboard/WelcomeBanner';
 import { StatsOverview } from '../../../components/dashboard/StatsOverview';
 import { ActiveCourseHero } from '../../../components/dashboard/ActiveCourseHero';
 import { RecommendedList } from '../../../components/dashboard/RecommendedList';
-import { BookOpen, TrendingUp, Clock, Calendar as CalendarIcon, MoreHorizontal } from 'lucide-react';
+import { BookOpen, TrendingUp } from 'lucide-react';
 import { RecentTimeline } from '../../../components/dashboard/RecentTimeline';
 
 // --- MOCK ENTERPRISE WIDGETS ---
@@ -48,25 +48,52 @@ export const Dashboard: React.FC = () => {
    const { courses, enrollments, getRecommendedCourses } = useGlobal();
    const navigate = useNavigate();
 
+   // Performance: Aggressively memoize derived state to prevent recalculation on every render
+   const {
+      activeCourse,
+      activeEnrollment,
+      otherEnrolledCourses,
+      enrolledCourseCount: _enrolledCourseCount
+   } = React.useMemo(() => {
+      if (!user || !enrollments || !courses) {
+         return {
+            activeCourse: undefined,
+            activeEnrollment: null,
+            otherEnrolledCourses: [],
+            enrolledCourseCount: 0
+         };
+      }
+
+      const enrolledIds = Object.keys(enrollments);
+      const activeKey = enrolledIds.find(id => enrollments[id].status === 'in_progress') || enrolledIds[0];
+      const activeC = activeKey ? courses.find(c => c.id === activeKey) : undefined;
+      const activeE = activeKey ? enrollments[activeKey] : null;
+
+      const otherEnrolled = enrolledIds
+         .filter(id => id !== activeKey)
+         .map(id => {
+            const course = courses.find(c => c.id === id);
+            return course ? { ...course, progress: enrollments[id].progress } : null;
+         })
+         .filter((c): c is (Course & { progress: number }) => c !== null)
+         .slice(0, 2);
+
+      return {
+         activeCourse: activeC,
+         activeEnrollment: activeE,
+         otherEnrolledCourses: otherEnrolled,
+         enrolledCourseCount: enrolledIds.length
+      };
+   }, [user, enrollments, courses]);
+
+   // Performance: Memoize recommendations, omitting function ref in favor of underlying data sources
+   const recommendations = React.useMemo(() => {
+      if (!user || !courses || !enrollments) return [];
+      return getRecommendedCourses();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [user, courses, enrollments]);
+
    if (!user) return null;
-
-   // Logic: Get Active Course (Most recently accessed or highest progress < 100)
-   const enrolledCourseIds = Object.keys(enrollments);
-   const activeEnrollmentKey = enrolledCourseIds.find(id => enrollments[id].status === 'in_progress') || enrolledCourseIds[0];
-   const activeCourse = courses.find(c => c.id === activeEnrollmentKey);
-   const activeEnrollment = activeEnrollmentKey ? enrollments[activeEnrollmentKey] : null;
-
-   // Logic: Get other enrolled courses (Max 2 for display)
-   const otherEnrolledCourses = enrolledCourseIds
-      .filter(id => id !== activeEnrollmentKey)
-      .map(id => {
-         const course = courses.find(c => c.id === id);
-         return course ? { ...course, progress: enrollments[id].progress } : null;
-      })
-      .filter((c): c is (Course & { progress: number }) => c !== null)
-      .slice(0, 2);
-
-   const recommendations = getRecommendedCourses();
 
    return (
       <div className="space-y-8 font-sans text-slate-600 animate-fade-in">
@@ -75,7 +102,7 @@ export const Dashboard: React.FC = () => {
          <WelcomeBanner user={user} />
 
          {/* --- STATS ROW --- */}
-         <StatsOverview activeCourse={activeCourse} enrolledCourseCount={enrolledCourseIds.length} />
+         <StatsOverview activeCourse={activeCourse} enrolledCourseCount={_enrolledCourseCount} />
 
          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
 
