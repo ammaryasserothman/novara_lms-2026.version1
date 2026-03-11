@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { useScrollTop } from '../hooks/useScrollTop';
 import { useAuth } from '../context/AuthContext';
+import { Loading } from '../components/ui/Loading';
 
 export const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const { user, logout, isLoading } = useAuth();
@@ -61,7 +62,9 @@ export const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }
           className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-8 scroll-smooth"
         >
           <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
-            {children}
+            <React.Suspense fallback={<Loading />}>
+              {children}
+            </React.Suspense>
           </div>
         </main>
       </div>
