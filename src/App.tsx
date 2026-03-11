@@ -34,28 +34,27 @@ import { PricingPage } from './features/commerce/pages/PricingPage';
 import { CartPage } from './features/commerce/pages/CartPage';
 import { CheckoutPage } from './features/commerce/pages/CheckoutPage';
 
-// --- Feature: Dashboard ---
-// --- Feature: Dashboard ---
-import { Dashboard } from './features/dashboard/pages/Dashboard';
-import { ProfilePage } from './features/dashboard/pages/ProfilePage';
-import { SettingsPage } from './features/dashboard/pages/SettingsPage';
-import { CalendarPage } from './features/dashboard/pages/CalendarPage';
-import { SupportPage } from './features/dashboard/pages/SupportPage';
-import { NotificationsPage } from './features/dashboard/pages/NotificationsPage';
+// --- Feature: Dashboard (Lazy Loaded) ---
+const Dashboard = React.lazy(() => import('./features/dashboard/pages/Dashboard').then(module => ({ default: module.Dashboard })));
+const ProfilePage = React.lazy(() => import('./features/dashboard/pages/ProfilePage').then(module => ({ default: module.ProfilePage })));
+const SettingsPage = React.lazy(() => import('./features/dashboard/pages/SettingsPage').then(module => ({ default: module.SettingsPage })));
+const CalendarPage = React.lazy(() => import('./features/dashboard/pages/CalendarPage').then(module => ({ default: module.CalendarPage })));
+const SupportPage = React.lazy(() => import('./features/dashboard/pages/SupportPage').then(module => ({ default: module.SupportPage })));
+const NotificationsPage = React.lazy(() => import('./features/dashboard/pages/NotificationsPage').then(module => ({ default: module.NotificationsPage })));
 
-// --- Feature: Courses ---
-import { MyCoursesPage } from './features/courses/pages/MyCoursesPage';
-import { CatalogPage } from './features/courses/pages/CatalogPage';
-import { CourseDetailsPage } from './features/courses/pages/CourseDetailsPage';
-import { LessonPage } from './features/courses/pages/LessonPage';
-import { AssignmentsPage } from './features/courses/pages/AssignmentsPage';
-import { ProgressPage } from './features/courses/pages/ProgressPage';
-import { CertificatesPage } from './features/courses/pages/CertificatesPage';
-import { BookmarksPage } from './features/courses/pages/BookmarksPage';
-import { StudentsPage } from './features/courses/pages/StudentsPage';
+// --- Feature: Courses (Lazy Loaded) ---
+const MyCoursesPage = React.lazy(() => import('./features/courses/pages/MyCoursesPage').then(module => ({ default: module.MyCoursesPage })));
+const CatalogPage = React.lazy(() => import('./features/courses/pages/CatalogPage').then(module => ({ default: module.CatalogPage })));
+const CourseDetailsPage = React.lazy(() => import('./features/courses/pages/CourseDetailsPage').then(module => ({ default: module.CourseDetailsPage })));
+const LessonPage = React.lazy(() => import('./features/courses/pages/LessonPage').then(module => ({ default: module.LessonPage })));
+const AssignmentsPage = React.lazy(() => import('./features/courses/pages/AssignmentsPage').then(module => ({ default: module.AssignmentsPage })));
+const ProgressPage = React.lazy(() => import('./features/courses/pages/ProgressPage').then(module => ({ default: module.ProgressPage })));
+const CertificatesPage = React.lazy(() => import('./features/courses/pages/CertificatesPage').then(module => ({ default: module.CertificatesPage })));
+const BookmarksPage = React.lazy(() => import('./features/courses/pages/BookmarksPage').then(module => ({ default: module.BookmarksPage })));
+const StudentsPage = React.lazy(() => import('./features/courses/pages/StudentsPage').then(module => ({ default: module.StudentsPage })));
 
-// --- Feature: Community ---
-import { CommunityPage } from './features/community/pages/CommunityPage';
+// --- Feature: Community (Lazy Loaded) ---
+const CommunityPage = React.lazy(() => import('./features/community/pages/CommunityPage').then(module => ({ default: module.CommunityPage })));
 
 const App: React.FC = () => {
   return (
