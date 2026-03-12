@@ -1,0 +1,3 @@
+## 2024-05-20 - GlobalContext Inline Object Re-renders
+**Learning:** The GlobalContext passes an inline object as its value, which causes widespread and frequent re-renders for all subscribers whenever any global state changes. The derived states dependent on context values are recalculated frequently as a consequence.
+**Action:** Wrap derived states dependent on context values (like arrays in `courses` or `enrollments`) aggressively in `React.useMemo` within components. Place early returns strictly after hook calls and use safety checks inside the `useMemo` callback. Omit context function references from dependencies in favor of underlying data sources.
