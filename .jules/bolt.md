@@ -1,0 +1,3 @@
+## 2024-05-18 - Memoizing Context Derived State
+**Learning:** GlobalContext provider passes inline object, causing widespread frequent re-renders for all subscribers when any global state changes. Derived states dependent on context values (like arrays in courses or enrollments) should be aggressively wrapped in React.useMemo with appropriate fallback/null checks to mitigate expensive nested loop recalculations.
+**Action:** Wrap derived state from GlobalContext in useMemo, ensuring safety checks inside the useMemo callback itself (e.g., if (!user || !data) return null;) to prevent runtime crashes when dealing with conditional data.
