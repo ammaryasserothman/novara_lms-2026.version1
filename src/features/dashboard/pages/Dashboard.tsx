@@ -9,7 +9,7 @@ import { WelcomeBanner } from '../../../components/dashboard/WelcomeBanner';
 import { StatsOverview } from '../../../components/dashboard/StatsOverview';
 import { ActiveCourseHero } from '../../../components/dashboard/ActiveCourseHero';
 import { RecommendedList } from '../../../components/dashboard/RecommendedList';
-import { BookOpen, TrendingUp, Clock, Calendar as CalendarIcon, MoreHorizontal } from 'lucide-react';
+import { BookOpen, TrendingUp } from 'lucide-react';
 import { RecentTimeline } from '../../../components/dashboard/RecentTimeline';
 
 // --- MOCK ENTERPRISE WIDGETS ---
@@ -48,25 +48,36 @@ export const Dashboard: React.FC = () => {
    const { courses, enrollments, getRecommendedCourses } = useGlobal();
    const navigate = useNavigate();
 
-   if (!user) return null;
-
    // Logic: Get Active Course (Most recently accessed or highest progress < 100)
-   const enrolledCourseIds = Object.keys(enrollments);
-   const activeEnrollmentKey = enrolledCourseIds.find(id => enrollments[id].status === 'in_progress') || enrolledCourseIds[0];
-   const activeCourse = courses.find(c => c.id === activeEnrollmentKey);
-   const activeEnrollment = activeEnrollmentKey ? enrollments[activeEnrollmentKey] : null;
+   const { enrolledCourseIds, activeEnrollmentKey, activeCourse, activeEnrollment } = React.useMemo(() => {
+      if (!user) return { enrolledCourseIds: [], activeEnrollmentKey: null, activeCourse: undefined, activeEnrollment: null };
+      const ids = Object.keys(enrollments);
+      const key = ids.find(id => enrollments[id].status === 'in_progress') || ids[0];
+      const course = courses.find(c => c.id === key);
+      const enrollment = key ? enrollments[key] : null;
+      return { enrolledCourseIds: ids, activeEnrollmentKey: key, activeCourse: course, activeEnrollment: enrollment };
+   }, [user, courses, enrollments]);
 
    // Logic: Get other enrolled courses (Max 2 for display)
-   const otherEnrolledCourses = enrolledCourseIds
-      .filter(id => id !== activeEnrollmentKey)
-      .map(id => {
-         const course = courses.find(c => c.id === id);
-         return course ? { ...course, progress: enrollments[id].progress } : null;
-      })
-      .filter((c): c is (Course & { progress: number }) => c !== null)
-      .slice(0, 2);
+   const otherEnrolledCourses = React.useMemo(() => {
+      if (!user) return [];
+      return enrolledCourseIds
+         .filter(id => id !== activeEnrollmentKey)
+         .map(id => {
+            const course = courses.find(c => c.id === id);
+            return course ? { ...course, progress: enrollments[id].progress } : null;
+         })
+         .filter((c): c is (Course & { progress: number }) => c !== null)
+         .slice(0, 2);
+   }, [user, enrolledCourseIds, activeEnrollmentKey, courses, enrollments]);
 
-   const recommendations = getRecommendedCourses();
+   const recommendations = React.useMemo(() => {
+      if (!user) return [];
+      return getRecommendedCourses();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [user, courses, enrollments]);
+
+   if (!user) return null;
 
    return (
       <div className="space-y-8 font-sans text-slate-600 animate-fade-in">
