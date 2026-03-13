@@ -1,0 +1,3 @@
+## 2024-05-18 - Prevent Unnecessary Re-renders from GlobalContext
+**Learning:** The `GlobalContext.Provider` currently passes an inline object as its value (`value={{ currentUser, courses, ... }}`). In React, this creates a new object reference on every render of `GlobalProvider`, causing all connected components (which is most of the app, given it's a global context) to re-render even if the underlying state hasn't changed, potentially leading to widespread performance issues.
+**Action:** Always wrap the `value` object provided to React Contexts in `React.useMemo` to ensure referential equality across renders unless the underlying dependencies change.
