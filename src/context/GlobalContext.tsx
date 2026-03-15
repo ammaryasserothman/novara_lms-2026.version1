@@ -208,22 +208,26 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return next ? next.id : null;
   };
 
+  // ⚡ Bolt: Prevent unnecessary re-renders for all context subscribers
+  const contextValue = React.useMemo(() => ({
+    currentUser,
+    courses,
+    enrollments,
+    notifications,
+    achievements,
+    bookmarks,
+    enrollInCourse,
+    markLessonComplete,
+    toggleBookmark,
+    markNotificationRead,
+    getCourseProgress,
+    getRecommendedCourses,
+    getNextLesson
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [currentUser, courses, enrollments, notifications, achievements, bookmarks]);
+
   return (
-    <GlobalContext.Provider value={{
-      currentUser,
-      courses,
-      enrollments,
-      notifications,
-      achievements,
-      bookmarks,
-      enrollInCourse,
-      markLessonComplete,
-      toggleBookmark,
-      markNotificationRead,
-      getCourseProgress,
-      getRecommendedCourses,
-      getNextLesson
-    }}>
+    <GlobalContext.Provider value={contextValue}>
       {children}
     </GlobalContext.Provider>
   );
