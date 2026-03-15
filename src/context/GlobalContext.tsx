@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import { User, Course, Enrollment, Notification, Achievement } from '../types';
 import { COURSES as STATIC_COURSES, CURRENT_USER } from '../data/mockData';
 
@@ -208,22 +208,25 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return next ? next.id : null;
   };
 
+  const value = useMemo(() => ({
+    currentUser,
+    courses,
+    enrollments,
+    notifications,
+    achievements,
+    bookmarks,
+    enrollInCourse,
+    markLessonComplete,
+    toggleBookmark,
+    markNotificationRead,
+    getCourseProgress,
+    getRecommendedCourses,
+    getNextLesson
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [currentUser, courses, enrollments, notifications, achievements, bookmarks]);
+
   return (
-    <GlobalContext.Provider value={{
-      currentUser,
-      courses,
-      enrollments,
-      notifications,
-      achievements,
-      bookmarks,
-      enrollInCourse,
-      markLessonComplete,
-      toggleBookmark,
-      markNotificationRead,
-      getCourseProgress,
-      getRecommendedCourses,
-      getNextLesson
-    }}>
+    <GlobalContext.Provider value={value}>
       {children}
     </GlobalContext.Provider>
   );
