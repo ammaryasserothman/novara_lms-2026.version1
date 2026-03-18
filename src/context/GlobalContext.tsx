@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { User, Course, Enrollment, Notification, Achievement } from '../types';
 import { COURSES as STATIC_COURSES, CURRENT_USER } from '../data/mockData';
 
@@ -175,8 +175,8 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return enrollments[courseId]?.progress || 0;
   };
 
-  // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
+  // Memoize the derived recommendations to prevent expensive recalculation on every render
+  const memoizedRecommendations = useMemo(() => {
     // 1. Get user categories from enrolled courses
     const enrolledIds = Object.keys(enrollments);
     const userCategories = enrolledIds
@@ -192,7 +192,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return bMatch - aMatch; // Descending match
       })
       .slice(0, 2); // Return top 2
-  };
+  }, [enrollments, courses]);
+
+  // Simple "AI" Recommendation Engine (Wrapped to preserve API)
+  const getRecommendedCourses = useCallback(() => memoizedRecommendations, [memoizedRecommendations]);
 
   // Logic to find the next playable video
   const getNextLesson = (courseId: string): string | null => {
