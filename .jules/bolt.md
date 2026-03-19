@@ -1,0 +1,3 @@
+## 2024-05-24 - Memoizing function-based APIs in Contexts
+**Learning:** When a Context exposes data via a function interface (e.g. `getRecommendedCourses()`), applying `useMemo` to the function reference itself doesn't prevent re-computation if the function executes internal logic returning new arrays each time.
+**Action:** Pre-compute the derived data first using `useMemo` (with underlying data sources like `courses` and `enrollments` as dependencies), and then expose that memoized data through a `useCallback` wrapper (`useCallback(() => memoizedData, [memoizedData])`) to preserve the function API for consumers without unnecessary re-renders.
