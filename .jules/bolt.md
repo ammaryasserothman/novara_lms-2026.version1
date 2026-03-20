@@ -1,0 +1,4 @@
+
+## 2024-03-21 - [Function-based API Memoization in React Context]
+**Learning:** When a React Context (like `GlobalContext`) uses a function-based API (e.g., `getRecommendedCourses()`) to expose derived state, using only the function reference as a dependency in other components or the context value bypasses proper dependency tracking. Memoizing the function itself does not prevent re-renders if the underlying data changes, and returning a new array/object inside the function on every call destroys referential equality for subscribers calling it.
+**Action:** When memoizing Context values, wrap the *result data* using `useMemo` (e.g., pre-computing recommendations based on `courses` and `enrollments`), then wrap the getter function in a `useCallback` that solely returns that memoized data. This maintains the function-based interface while ensuring correct referential equality and preventing widespread frequent re-renders for context subscribers.
