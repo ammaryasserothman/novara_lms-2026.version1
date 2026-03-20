@@ -1,0 +1,3 @@
+## 2026-03-19 - Prevent Unnecessary Recalculations in React Context
+**Learning:** Monolithic context states like `GlobalContext` trigger widespread re-renders. Expensive calculations within the provider body, like filtering and sorting arrays (e.g., `getRecommendedCourses`), are re-executed on every render, causing significant performance overhead even if the underlying data hasn't changed.
+**Action:** When exposing derived data or expensive computations via a context getter function, pre-compute the result using `useMemo` (with proper dependencies) and return it via a `useCallback` wrapper to preserve the existing function-based API interface.
