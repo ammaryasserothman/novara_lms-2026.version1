@@ -1,0 +1,3 @@
+## 2024-05-24 - Memoize Global Context Value
+**Learning:** In a monolithic Context Provider (like `GlobalContext.tsx` handling courses, enrollments, and notifications), failing to memoize the context `value` object means the object is recreated on *every single state update*. This breaks referential equality, forcing *every single component* that calls `useGlobal()` to re-render, even if the specific state slice it cares about didn't change.
+**Action:** Always wrap the `value` passed to `<Context.Provider>` in `useMemo`. Before doing so, ensure all functions provided in the context are wrapped in `useCallback` with proper dependency arrays, and include both state variables and memoized functions in the `useMemo` dependency array to prevent stale closures.
