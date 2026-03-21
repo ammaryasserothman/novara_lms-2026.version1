@@ -1,0 +1,3 @@
+## 2024-03-21 - Optimize GlobalContext renders by memoizing Context value and derived data getter
+**Learning:** Returning fresh objects or arrays (like from unmemoized inline values in `Context.Provider` or unmemoized getters like `getRecommendedCourses`) causes widespread re-renders for all context subscribers, even if the underlying state hasn't changed.
+**Action:** Always wrap the context `value` object in `useMemo`, ensure all context functions are wrapped in `useCallback`, and critically, memoize derived data (like recommendations) using `useMemo` *before* returning it via a `useCallback` getter to preserve referential equality.
