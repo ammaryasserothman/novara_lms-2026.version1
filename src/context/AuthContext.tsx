@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { User } from '../types';
 import { CURRENT_USER } from '../data/mockData';
 
@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     // Prevent unused var warning
     console.log(password ? "Password provided" : "No password");
     setIsLoading(true);
@@ -80,9 +80,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const signup = async (userData: { email: string; password: string; name: string; role?: 'student' | 'instructor'; avatar?: string; bio?: string; title?: string; phone?: string; address?: string }) => {
+  const signup = useCallback(async (userData: { email: string; password: string; name: string; role?: 'student' | 'instructor'; avatar?: string; bio?: string; title?: string; phone?: string; address?: string }) => {
     setIsLoading(true);
     setError(null);
 
@@ -110,31 +110,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem('novara_user');
-  };
+  }, []);
 
-  const updateUser = (updates: Partial<User>) => {
+  const updateUser = useCallback((updates: Partial<User>) => {
     setUser(prev => prev ? { ...prev, ...updates } : null);
-  };
+  }, []);
 
-  const clearError = () => setError(null);
+  const clearError = useCallback(() => setError(null), []);
+
+  // Memoize the context value to prevent unnecessary re-renders of consuming components
+  // when unrelated state changes or parent components re-render.
+  const contextValue = useMemo(() => ({
+    user,
+    isAuthenticated: !!user,
+    isLoading,
+    error,
+    login,
+    signup,
+    logout,
+    updateUser,
+    clearError
+  }), [user, isLoading, error, login, signup, logout, updateUser, clearError]);
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      isAuthenticated: !!user,
-      isLoading,
-      error,
-      login,
-      signup,
-      logout,
-      updateUser,
-      clearError
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
