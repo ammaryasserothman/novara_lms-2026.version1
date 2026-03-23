@@ -1,0 +1,3 @@
+## 2024-05-14 - Removed Cascading Renders from Effects
+**Learning:** Found instances where `useEffect` was used to sync state based on another state (e.g., deriving `isPasswordWeak` from `formData.password` and resetting `selectedIndex` on `searchQuery` change). This is a React anti-pattern that causes cascading, unnecessary re-renders, especially impactful on high-frequency inputs like passwords or search bars.
+**Action:** When a value can be derived entirely from existing props or state, calculate it directly during render. When state needs to reset in response to an event (like a keystroke), update it directly in the event handler rather than using an effect.
