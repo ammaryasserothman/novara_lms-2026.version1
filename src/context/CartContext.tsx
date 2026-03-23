@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
 import { Course, CartItem, Coupon } from '../types';
 
 interface CartContextType {
@@ -42,38 +42,40 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('novara_cart', JSON.stringify(cartItems));
     }, [cartItems]);
 
-    const addToCart = (course: Course) => {
-        // Prevent duplicates for courses
-        if (cartItems.some(item => item.id === course.id)) return;
+    const addToCart = useCallback((course: Course) => {
+        setCartItems(prev => {
+            // Prevent duplicates for courses
+            if (prev.some(item => item.id === course.id)) return prev;
 
-        const newItem: CartItem = {
-            ...course,
-            cartId: `cart-${Date.now()}-${Math.random()}`
-        };
-        setCartItems(prev => [...prev, newItem]);
-    };
+            const newItem: CartItem = {
+                ...course,
+                cartId: `cart-${Date.now()}-${crypto.randomUUID()}`
+            };
+            return [...prev, newItem];
+        });
+    }, []);
 
-    const removeFromCart = (cartId: string) => {
+    const removeFromCart = useCallback((cartId: string) => {
         setCartItems(prev => prev.filter(item => item.cartId !== cartId));
-    };
+    }, []);
 
-    const clearCart = () => {
+    const clearCart = useCallback(() => {
         setCartItems([]);
         setCoupon(null);
-    };
+    }, []);
 
-    const applyCoupon = (code: string): boolean => {
+    const applyCoupon = useCallback((code: string): boolean => {
         const found = VALID_COUPONS[code.toUpperCase()];
         if (found) {
             setCoupon(found);
             return true;
         }
         return false;
-    };
+    }, []);
 
-    const removeCoupon = () => {
+    const removeCoupon = useCallback(() => {
         setCoupon(null);
-    };
+    }, []);
 
     // Computations
     const subtotal = useMemo(() => {
@@ -94,26 +96,43 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return Math.max(0, subtotal - discount + tax);
     }, [subtotal, discount, tax]);
 
+    // Memoize the context value to prevent unnecessary re-renders of consuming components
+    // when unrelated state changes or parent components re-render.
+    const contextValue = useMemo(() => ({
+        cartItems,
+        addToCart,
+        removeFromCart,
+        clearCart,
+        applyCoupon,
+        removeCoupon,
+        coupon,
+        subtotal,
+        discount,
+        tax,
+        total,
+        itemCount: cartItems.length
+    }), [
+        cartItems,
+        addToCart,
+        removeFromCart,
+        clearCart,
+        applyCoupon,
+        removeCoupon,
+        coupon,
+        subtotal,
+        discount,
+        tax,
+        total
+    ]);
+
     return (
-        <CartContext.Provider value={{
-            cartItems,
-            addToCart,
-            removeFromCart,
-            clearCart,
-            applyCoupon,
-            removeCoupon,
-            coupon,
-            subtotal,
-            discount,
-            tax,
-            total,
-            itemCount: cartItems.length
-        }}>
+        <CartContext.Provider value={contextValue}>
             {children}
         </CartContext.Provider>
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useCart = () => {
     const context = useContext(CartContext);
     if (!context) throw new Error('useCart must be used within a CartProvider');
