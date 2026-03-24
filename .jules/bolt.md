@@ -1,0 +1,3 @@
+## 2024-03-25 - Prevent O(N*M) performance in derived calculations and context re-renders
+**Learning:** React Contexts (like GlobalContext) that calculate complex derived state using multiple nested arrays (e.g., finding categories from enrolled courses via `Array.prototype.find`) scale terribly (O(N*M)). Moreover, missing `useMemo` on context values causes widespread cascading re-renders across the whole app.
+**Action:** Always pre-calculate an O(1) lookup map for list lookups inside loops, and wrap context value objects in `useMemo` with functions properly wrapped in `useCallback` to prevent continuous unneeded updates.
