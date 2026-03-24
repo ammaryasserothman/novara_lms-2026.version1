@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { User, Course, Enrollment, Notification, Achievement } from '../types';
 import { COURSES as STATIC_COURSES, CURRENT_USER } from '../data/mockData';
 
@@ -176,23 +176,32 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
-    // 1. Get user categories from enrolled courses
+  // Memoize the recommended courses array to prevent unnecessary O(N) calculations on re-renders
+  const recommendedCoursesMemo = useMemo(() => {
     const enrolledIds = Object.keys(enrollments);
-    const userCategories = enrolledIds
-      .map(id => courses.find(c => c.id === id)?.category)
-      .filter(Boolean) as string[];
+    const enrolledSet = new Set(enrolledIds);
 
-    // 2. Find courses NOT enrolled, prioritizing matching categories
+    // 1. Build user categories in O(N) single pass instead of O(N*M) lookups
+    const userCategories = new Set<string>();
+    for (let i = 0; i < courses.length; i++) {
+      if (enrolledSet.has(courses[i].id) && courses[i].category) {
+        userCategories.add(courses[i].category);
+      }
+    }
+
+    // 2. Find courses NOT enrolled, prioritizing matching categories (O(1) lookups via Set)
     return courses
-      .filter(c => !enrolledIds.includes(c.id))
+      .filter(c => !enrolledSet.has(c.id))
       .sort((a, b) => {
-        const aMatch = userCategories.includes(a.category) ? 1 : 0;
-        const bMatch = userCategories.includes(b.category) ? 1 : 0;
+        const aMatch = userCategories.has(a.category) ? 1 : 0;
+        const bMatch = userCategories.has(b.category) ? 1 : 0;
         return bMatch - aMatch; // Descending match
       })
       .slice(0, 2); // Return top 2
-  };
+  }, [courses, enrollments]);
+
+  // Provide via useCallback to maintain the existing function-based API (getRecommendedCourses())
+  const getRecommendedCourses = useCallback(() => recommendedCoursesMemo, [recommendedCoursesMemo]);
 
   // Logic to find the next playable video
   const getNextLesson = (courseId: string): string | null => {

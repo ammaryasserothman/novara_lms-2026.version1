@@ -1,0 +1,3 @@
+## 2024-05-24 - Optimizing Derived State O(N*M) in React Context
+**Learning:** In heavily utilized Context Providers (like `GlobalContext`), naive array manipulation functions that derive state across multiple collections (e.g. `courses` and `enrollments` causing O(N*M) operations) can create massive render-cycle bottlenecks because they execute synchronously every time a subscriber updates or the provider re-renders.
+**Action:** Always pre-compute derived state involving multiple arrays using O(1) structures like `Set` or `Map` to reduce complexity from O(N*M) to O(N). Crucially, wrap the optimized derivation in `useMemo` so it only recalculates when the underlying array references change, rather than running the loop on every single React render pass.
