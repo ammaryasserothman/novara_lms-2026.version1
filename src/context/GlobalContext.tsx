@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { User, Course, Enrollment, Notification, Achievement } from '../types';
 import { COURSES as STATIC_COURSES, CURRENT_USER } from '../data/mockData';
 
@@ -176,23 +176,33 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
-    // 1. Get user categories from enrolled courses
-    const enrolledIds = Object.keys(enrollments);
-    const userCategories = enrolledIds
-      .map(id => courses.find(c => c.id === id)?.category)
-      .filter(Boolean) as string[];
+  const memoizedRecommendations = useMemo(() => {
+    const enrolledIdsSet = new Set(Object.keys(enrollments));
+    const userCategoriesSet = new Set<string>();
+    const availableCourses: Course[] = [];
 
-    // 2. Find courses NOT enrolled, prioritizing matching categories
-    return courses
-      .filter(c => !enrolledIds.includes(c.id))
+    // 1. Single pass to find enrolled categories and available courses (O(N) instead of O(N*M))
+    for (const course of courses) {
+      if (enrolledIdsSet.has(course.id)) {
+        if (course.category) {
+          userCategoriesSet.add(course.category);
+        }
+      } else {
+        availableCourses.push(course);
+      }
+    }
+
+    // 2. Sort available courses, prioritizing matching categories
+    return availableCourses
       .sort((a, b) => {
-        const aMatch = userCategories.includes(a.category) ? 1 : 0;
-        const bMatch = userCategories.includes(b.category) ? 1 : 0;
+        const aMatch = userCategoriesSet.has(a.category) ? 1 : 0;
+        const bMatch = userCategoriesSet.has(b.category) ? 1 : 0;
         return bMatch - aMatch; // Descending match
       })
       .slice(0, 2); // Return top 2
-  };
+  }, [courses, enrollments]);
+
+  const getRecommendedCourses = useCallback(() => memoizedRecommendations, [memoizedRecommendations]);
 
   // Logic to find the next playable video
   const getNextLesson = (courseId: string): string | null => {
