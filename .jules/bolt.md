@@ -1,0 +1,3 @@
+## 2024-10-24 - React Router Code Splitting
+**Learning:** Code-splitting with `React.lazy` on a large scale significantly reduces the initial main bundle size (FCP) and ensures eagerly loaded routes remain lightweight. The key consideration for React Router v7 is placing `<Suspense>` correctly inside layouts rather than directly as children of `<Routes>` when routes share a common layout wrapper to avoid layout unmounting/flashing.
+**Action:** When migrating an app to use `React.lazy` code splitting, apply `<Suspense>` strategically around layout slots, and manually wrap individual un-nested routes with `<Suspense>` inline. Avoid checking in scratchpad scripts or unintended lockfile generations.
