@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
    PlayCircle, ChevronLeft, ChevronRight,
@@ -27,6 +27,32 @@ export const LessonPage: React.FC = () => {
    const currentModule = course?.syllabus.find((m: Module) => m.lessons.some((l: Lesson) => l.id === lessonId));
    const currentModuleIdx = course?.syllabus.findIndex((m: Module) => m.lessons.some((l: Lesson) => l.id === lessonId)) ?? 0;
    const currentLesson = currentModule?.lessons.find((l: Lesson) => l.id === lessonId) || null;
+
+   // Pre-calculate previous and next lessons in O(N) single pass without array allocations
+   const { prevLessonId, nextLessonId } = useMemo(() => {
+      let prevId: string | null = null;
+      let nextId: string | null = null;
+      let foundCurrent = false;
+
+      if (!course) return { prevLessonId: null, nextLessonId: null };
+
+      for (const module of course.syllabus) {
+         for (const lesson of module.lessons) {
+            if (foundCurrent) {
+               nextId = lesson.id;
+               break;
+            }
+            if (lesson.id === lessonId) {
+               foundCurrent = true;
+            } else {
+               prevId = lesson.id;
+            }
+         }
+         if (nextId) break;
+      }
+
+      return { prevLessonId: prevId, nextLessonId: nextId };
+   }, [course, lessonId]);
 
    if (!course || !currentLesson) return <div>Lesson not found</div>;
 
@@ -185,17 +211,11 @@ export const LessonPage: React.FC = () => {
                            className="hidden sm:flex"
                            icon={<ChevronLeft size={16} />}
                            onClick={() => {
-                              // Flatten lessons to find previous
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              const currentIndex = allLessons.findIndex(l => l.id === lessonId);
-                              if (currentIndex > 0) {
-                                 navigate(`/courses/${courseId}/lessons/${allLessons[currentIndex - 1].id}`);
+                              if (prevLessonId) {
+                                 navigate(`/courses/${courseId}/lessons/${prevLessonId}`);
                               }
                            }}
-                           disabled={(() => {
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              return allLessons.findIndex(l => l.id === lessonId) <= 0;
-                           })()}
+                           disabled={!prevLessonId}
                         >
                            Previous
                         </Button>
@@ -203,17 +223,11 @@ export const LessonPage: React.FC = () => {
                            className="bg-novara-600 hover:bg-novara-700 text-white"
                            icon={<ChevronRight size={16} />}
                            onClick={() => {
-                              // Flatten lessons to find next
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              const currentIndex = allLessons.findIndex(l => l.id === lessonId);
-                              if (currentIndex < allLessons.length - 1) {
-                                 navigate(`/courses/${courseId}/lessons/${allLessons[currentIndex + 1].id}`);
+                              if (nextLessonId) {
+                                 navigate(`/courses/${courseId}/lessons/${nextLessonId}`);
                               }
                            }}
-                           disabled={(() => {
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              return allLessons.findIndex(l => l.id === lessonId) >= allLessons.length - 1;
-                           })()}
+                           disabled={!nextLessonId}
                         >
                            Next Lesson
                         </Button>
@@ -231,7 +245,7 @@ export const LessonPage: React.FC = () => {
                         ].map(tab => (
                            <button
                               key={tab.id}
-                              onClick={() => setActiveTab(tab.id as any)}
+                              onClick={() => setActiveTab(tab.id as 'overview' | 'qa' | 'notes')}
                               className={cn(
                                  "px-6 py-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors",
                                  activeTab === tab.id
