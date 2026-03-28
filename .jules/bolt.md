@@ -1,0 +1,3 @@
+## 2024-05-19 - Optimize React rendering array allocations in Next/Prev pagination
+**Learning:** Inline arrays created via operations like `flatMap` inside React component render loops or event callbacks (e.g., in pagination `<Button>` logic) force an O(N) allocation and traversal every time they are evaluated, leading to significant CPU overhead in components with heavy interactive state.
+**Action:** Extract repetitive array allocations and lookups into a single O(N) `useMemo` block that pre-computes adjacent navigational entities (like prev/next lesson indices), tracking only dependencies that dictate the data structure's layout.
