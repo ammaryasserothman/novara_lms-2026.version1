@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { User, Course, Enrollment, Notification, Achievement } from '../types';
 import { COURSES as STATIC_COURSES, CURRENT_USER } from '../data/mockData';
 
@@ -176,23 +176,51 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
-    // 1. Get user categories from enrolled courses
-    const enrolledIds = Object.keys(enrollments);
-    const userCategories = enrolledIds
-      .map(id => courses.find(c => c.id === id)?.category)
-      .filter(Boolean) as string[];
+  const recommendedCoursesMemo = useMemo(() => {
+    const enrolledIds = new Set(Object.keys(enrollments));
 
-    // 2. Find courses NOT enrolled, prioritizing matching categories
-    return courses
-      .filter(c => !enrolledIds.includes(c.id))
-      .sort((a, b) => {
-        const aMatch = userCategories.includes(a.category) ? 1 : 0;
-        const bMatch = userCategories.includes(b.category) ? 1 : 0;
-        return bMatch - aMatch; // Descending match
-      })
-      .slice(0, 2); // Return top 2
-  };
+    // Gather user categories in a single pass over enrolled IDs + courses map
+    // Using a Map for O(1) lookups instead of .find() in a loop
+    const courseMap = new Map();
+    for (const course of courses) {
+      courseMap.set(course.id, course);
+    }
+
+    const userCategories = new Set<string>();
+    for (const id of enrolledIds) {
+      const course = courseMap.get(id);
+      if (course && course.category) {
+        userCategories.add(course.category);
+      }
+    }
+
+    const matches: Course[] = [];
+    const nonMatches: Course[] = [];
+
+    // Single pass to find exactly 2 recommendations
+    for (const course of courses) {
+      if (!enrolledIds.has(course.id)) {
+        if (userCategories.has(course.category)) {
+          matches.push(course);
+          if (matches.length >= 2) return matches;
+        } else {
+          if (matches.length < 2 && nonMatches.length < 2) {
+            nonMatches.push(course);
+          }
+        }
+      }
+    }
+
+    // Fallback to non-matching categories if not enough matches
+    while (matches.length < 2 && nonMatches.length > 0) {
+      matches.push(nonMatches.shift()!);
+    }
+
+    return matches;
+  }, [courses, enrollments]);
+
+  // Expose as useCallback to maintain existing API without triggering re-renders
+  const getRecommendedCourses = useCallback(() => recommendedCoursesMemo, [recommendedCoursesMemo]);
 
   // Logic to find the next playable video
   const getNextLesson = (courseId: string): string | null => {
