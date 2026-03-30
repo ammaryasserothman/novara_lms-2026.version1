@@ -1,0 +1,7 @@
+## 2024-03-30 - Lazy Loading Heavy Routes
+**Learning:** React Router v7 combined with React.lazy requires placing `<Suspense>` boundaries inside layout components rather than wrapping `<Routes>` to prevent the entire layout from unmounting and flashing during lazy-loaded route transitions. The heavy features were eagerly loaded, bloating the initial bundle.
+**Action:** Use `React.lazy()` for heavy features (Dashboard, Courses, Commerce, Community) while keeping auth/marketing eager, and embed `<Suspense>` within `AppLayout.tsx` to ensure stable UI shells during navigation.
+
+## 2024-03-30 - Optimize getRecommendedCourses algorithm complexity
+**Learning:** In `src/context/GlobalContext.tsx`, an O(N*M) array iteration with `.find` inside `.map` and a subsequent `.sort` with `.includes` scans can be significantly optimized to an O(N) single-pass lookup using `Map` and `Set` for O(1) reads. When refactoring functional getters in React Context to use memoized values, use `useMemo` for the derived state and wrap the getter function in `useCallback` to prevent consumer re-renders while maintaining the existing API signature.
+**Action:** When working with nested array lookups in Context providers, always leverage Maps/Sets for O(1) read operations, avoid intermediate array creations via `.map`/`.filter`/`.sort` when early returns are possible in a `for` loop, and meticulously memoize derived values and their accessors.
