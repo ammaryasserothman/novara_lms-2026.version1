@@ -176,23 +176,40 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
-    // 1. Get user categories from enrolled courses
-    const enrolledIds = Object.keys(enrollments);
-    const userCategories = enrolledIds
-      .map(id => courses.find(c => c.id === id)?.category)
-      .filter(Boolean) as string[];
+  // Performance: Pre-compute recommendations in O(N) using Sets, avoiding O(N*M) lookups and O(N log N) sorting.
+  // Memoized to prevent recalculation on unrelated state changes (like notifications).
+  const recommendedCoursesList = React.useMemo(() => {
+    const enrolledIds = new Set(Object.keys(enrollments));
+    const userCategories = new Set<string>();
+    const availableCourses: Course[] = [];
 
-    // 2. Find courses NOT enrolled, prioritizing matching categories
-    return courses
-      .filter(c => !enrolledIds.includes(c.id))
-      .sort((a, b) => {
-        const aMatch = userCategories.includes(a.category) ? 1 : 0;
-        const bMatch = userCategories.includes(b.category) ? 1 : 0;
-        return bMatch - aMatch; // Descending match
-      })
-      .slice(0, 2); // Return top 2
-  };
+    // 1. O(N) single pass to gather user categories and available (unenrolled) courses
+    for (const c of courses) {
+      if (enrolledIds.has(c.id)) {
+        userCategories.add(c.category);
+      } else {
+        availableCourses.push(c);
+      }
+    }
+
+    // 2. O(N) pass to prioritize matching categories over others
+    const matchingCategory: Course[] = [];
+    const other: Course[] = [];
+
+    for (const c of availableCourses) {
+      if (userCategories.has(c.category)) {
+        matchingCategory.push(c);
+      } else {
+        other.push(c);
+      }
+    }
+
+    // Return top 2 (matching first, then fill with others)
+    return [...matchingCategory, ...other].slice(0, 2);
+  }, [courses, enrollments]);
+
+  // Performance: Wrap in useCallback to provide stable function reference to consumers
+  const getRecommendedCourses = React.useCallback(() => recommendedCoursesList, [recommendedCoursesList]);
 
   // Logic to find the next playable video
   const getNextLesson = (courseId: string): string | null => {
