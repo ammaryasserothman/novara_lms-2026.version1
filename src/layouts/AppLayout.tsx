@@ -61,7 +61,9 @@ export const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }
           className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-8 scroll-smooth"
         >
           <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
-            {children}
+            <React.Suspense fallback={<div className="flex h-64 items-center justify-center text-slate-500 animate-pulse">Loading content...</div>}>
+              {children}
+            </React.Suspense>
           </div>
         </main>
       </div>
