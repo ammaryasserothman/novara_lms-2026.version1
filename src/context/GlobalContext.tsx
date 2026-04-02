@@ -176,23 +176,51 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
-    // 1. Get user categories from enrolled courses
-    const enrolledIds = Object.keys(enrollments);
-    const userCategories = enrolledIds
-      .map(id => courses.find(c => c.id === id)?.category)
-      .filter(Boolean) as string[];
+  // Optimized using useMemo, Map, and Set for O(N) complexity instead of O(N*M) + O(N log N)
+  const recommendedCoursesMemo = React.useMemo(() => {
+    // 1. Pre-calculate course map for O(1) lookups
+    const courseMap = new Map(courses.map(c => [c.id, c]));
 
-    // 2. Find courses NOT enrolled, prioritizing matching categories
-    return courses
-      .filter(c => !enrolledIds.includes(c.id))
-      .sort((a, b) => {
-        const aMatch = userCategories.includes(a.category) ? 1 : 0;
-        const bMatch = userCategories.includes(b.category) ? 1 : 0;
-        return bMatch - aMatch; // Descending match
-      })
-      .slice(0, 2); // Return top 2
-  };
+    // 2. Get user categories from enrolled courses using O(1) map lookup
+    const userCategories = new Set<string>();
+    const enrolledIds = Object.keys(enrollments);
+
+    for (const id of enrolledIds) {
+      const course = courseMap.get(id);
+      if (course?.category) {
+        userCategories.add(course.category);
+      }
+    }
+
+    // 3. Find recommended courses in a single pass O(N) instead of sorting
+    const recommended: Course[] = [];
+    const fallbacks: Course[] = [];
+
+    for (const course of courses) {
+      // Skip if already enrolled
+      if (enrollments[course.id]) continue;
+
+      if (userCategories.has(course.category)) {
+        recommended.push(course);
+        // Early return if we have enough matching courses
+        if (recommended.length === 2) return recommended;
+      } else {
+        if (fallbacks.length < 2) fallbacks.push(course);
+      }
+    }
+
+    // 4. Fill with fallbacks if not enough matching category courses
+    while (recommended.length < 2 && fallbacks.length > 0) {
+      recommended.push(fallbacks.shift()!);
+    }
+
+    return recommended;
+  }, [courses, enrollments]);
+
+  // Maintain existing functional interface while leveraging memoized data
+  const getRecommendedCourses = React.useCallback(() => {
+    return recommendedCoursesMemo;
+  }, [recommendedCoursesMemo]);
 
   // Logic to find the next playable video
   const getNextLesson = (courseId: string): string | null => {

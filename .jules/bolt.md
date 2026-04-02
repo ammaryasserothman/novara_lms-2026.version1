@@ -1,0 +1,3 @@
+## 2024-05-24 - Array manipulation scaling
+**Learning:** In a heavily used context (GlobalContext), deriving recommendations dynamically using `.filter().sort()` creates hidden O(N*M) + O(N log N) complexity, scaling poorly with large datasets, and causing unnecessary garbage collection on every render since it returns a new array reference every time.
+**Action:** When filtering complex arrays, avoid built-in `includes()` or `find()` inside `map()`. Always map dependencies to O(1) structures like `Map`/`Set` first. Pre-compute and memoize the final derivation using `useMemo`, and expose it via a stable `useCallback` getter to preserve existing functional APIs.
