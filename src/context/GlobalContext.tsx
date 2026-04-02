@@ -176,23 +176,39 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
-    // 1. Get user categories from enrolled courses
-    const enrolledIds = Object.keys(enrollments);
-    const userCategories = enrolledIds
-      .map(id => courses.find(c => c.id === id)?.category)
-      .filter(Boolean) as string[];
+  const recommendedCoursesMemo = React.useMemo(() => {
+    const enrolledIds = new Set(Object.keys(enrollments));
+    const userCategories = new Set<string>();
+    const availableCourses: Course[] = [];
 
-    // 2. Find courses NOT enrolled, prioritizing matching categories
-    return courses
-      .filter(c => !enrolledIds.includes(c.id))
-      .sort((a, b) => {
-        const aMatch = userCategories.includes(a.category) ? 1 : 0;
-        const bMatch = userCategories.includes(b.category) ? 1 : 0;
-        return bMatch - aMatch; // Descending match
-      })
-      .slice(0, 2); // Return top 2
-  };
+    // Single pass: track categories of enrolled courses, collect unenrolled ones
+    for (const course of courses) {
+      if (enrolledIds.has(course.id)) {
+        if (course.category) userCategories.add(course.category);
+      } else {
+        availableCourses.push(course);
+      }
+    }
+
+    const categoryMatches: Course[] = [];
+    const otherCourses: Course[] = [];
+
+    // Separate matches from non-matches
+    for (const course of availableCourses) {
+      if (userCategories.has(course.category)) {
+        categoryMatches.push(course);
+      } else {
+        otherCourses.push(course);
+      }
+    }
+
+    return [...categoryMatches, ...otherCourses].slice(0, 2);
+  }, [courses, enrollments]);
+
+  const getRecommendedCourses = React.useCallback(
+    () => recommendedCoursesMemo,
+    [recommendedCoursesMemo]
+  );
 
   // Logic to find the next playable video
   const getNextLesson = (courseId: string): string | null => {
