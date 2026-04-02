@@ -1,0 +1,3 @@
+## 2024-05-15 - Context Value Memoization
+**Learning:** Even if individual context values or functions are memoized, not memoizing the wrapper `value` object passed to `Context.Provider` recreates the object on every render. This forces widespread re-renders of any components calling `useContext()` regardless of if the parts they consume changed.
+**Action:** Always wrap the entire `value={{ ... }}` object in `useMemo` with all individual context variables in the dependency array. Extract functions outside with `useCallback` to prevent cascading invalidation.
