@@ -176,23 +176,48 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
-    // 1. Get user categories from enrolled courses
-    const enrolledIds = Object.keys(enrollments);
-    const userCategories = enrolledIds
-      .map(id => courses.find(c => c.id === id)?.category)
-      .filter(Boolean) as string[];
+  // ⚡ Bolt: Optimized from O(N*M + N log N) to O(N) using Sets for O(1) lookups
+  // and a single pass iteration, returning early when 2 recommendations are found.
+  const getRecommendedCourses = React.useCallback(() => {
+    const enrolledIds = new Set(Object.keys(enrollments));
+
+    // 1. Get user categories from enrolled courses using an O(1) map approach
+    const userCategories = new Set<string>();
+    const courseMap = new Map<string, Course>();
+    for (const c of courses) {
+      courseMap.set(c.id, c);
+    }
+
+    for (const id of enrolledIds) {
+      const course = courseMap.get(id);
+      if (course && course.category) {
+        userCategories.add(course.category);
+      }
+    }
 
     // 2. Find courses NOT enrolled, prioritizing matching categories
-    return courses
-      .filter(c => !enrolledIds.includes(c.id))
-      .sort((a, b) => {
-        const aMatch = userCategories.includes(a.category) ? 1 : 0;
-        const bMatch = userCategories.includes(b.category) ? 1 : 0;
-        return bMatch - aMatch; // Descending match
-      })
-      .slice(0, 2); // Return top 2
-  };
+    const recommendations: Course[] = [];
+    const fallbacks: Course[] = [];
+
+    for (const course of courses) {
+      if (enrolledIds.has(course.id)) continue;
+
+      if (userCategories.has(course.category)) {
+        recommendations.push(course);
+        if (recommendations.length >= 2) break;
+      } else if (fallbacks.length < 2) {
+        fallbacks.push(course);
+      }
+    }
+
+    // Fill with fallbacks if we don't have enough matching categories
+    while (recommendations.length < 2 && fallbacks.length > 0) {
+      const fallback = fallbacks.shift();
+      if (fallback) recommendations.push(fallback);
+    }
+
+    return recommendations;
+  }, [courses, enrollments]);
 
   // Logic to find the next playable video
   const getNextLesson = (courseId: string): string | null => {
