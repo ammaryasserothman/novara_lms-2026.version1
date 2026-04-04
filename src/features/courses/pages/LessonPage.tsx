@@ -8,7 +8,7 @@ import {
 import { Button } from '../../../components/ui/Button';
 import { useGlobal } from '../../../context/GlobalContext';
 import { cn } from '../../../utils/cn';
-import { Module, Lesson } from '../../../types';
+import { Lesson } from '../../../types';
 
 export const LessonPage: React.FC = () => {
    const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
@@ -22,11 +22,30 @@ export const LessonPage: React.FC = () => {
    const course = courses.find(c => c.id === courseId);
    const enrollment = enrollments[courseId || ''];
 
-   // Find current lesson and module
-   // Use flatMap/find to let TS infer types correctly
-   const currentModule = course?.syllabus.find((m: Module) => m.lessons.some((l: Lesson) => l.id === lessonId));
-   const currentModuleIdx = course?.syllabus.findIndex((m: Module) => m.lessons.some((l: Lesson) => l.id === lessonId)) ?? 0;
-   const currentLesson = currentModule?.lessons.find((l: Lesson) => l.id === lessonId) || null;
+   // ⚡ Bolt: Optimize lesson lookup and flattening using a single pass O(N) useMemo block
+   // Avoids multiple O(N) allocations via flatMap and repeated find/findIndex calls
+   const { currentModuleIdx, currentLesson, allLessons, currentIndex } = React.useMemo(() => {
+      if (!course) return { currentModuleIdx: 0, currentLesson: null, allLessons: [], currentIndex: -1 };
+
+      const flatLessons: Lesson[] = [];
+      let modIdx = 0;
+      let less: Lesson | null = null;
+      let idx = -1;
+
+      for (let i = 0; i < course.syllabus.length; i++) {
+         const module = course.syllabus[i];
+         for (const lesson of module.lessons) {
+            if (lesson.id === lessonId) {
+               modIdx = i;
+               less = lesson;
+               idx = flatLessons.length;
+            }
+            flatLessons.push(lesson);
+         }
+      }
+
+      return { currentModuleIdx: modIdx, currentLesson: less, allLessons: flatLessons, currentIndex: idx };
+   }, [course, lessonId]);
 
    if (!course || !currentLesson) return <div>Lesson not found</div>;
 
@@ -185,17 +204,11 @@ export const LessonPage: React.FC = () => {
                            className="hidden sm:flex"
                            icon={<ChevronLeft size={16} />}
                            onClick={() => {
-                              // Flatten lessons to find previous
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              const currentIndex = allLessons.findIndex(l => l.id === lessonId);
                               if (currentIndex > 0) {
                                  navigate(`/courses/${courseId}/lessons/${allLessons[currentIndex - 1].id}`);
                               }
                            }}
-                           disabled={(() => {
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              return allLessons.findIndex(l => l.id === lessonId) <= 0;
-                           })()}
+                           disabled={currentIndex <= 0}
                         >
                            Previous
                         </Button>
@@ -203,17 +216,11 @@ export const LessonPage: React.FC = () => {
                            className="bg-novara-600 hover:bg-novara-700 text-white"
                            icon={<ChevronRight size={16} />}
                            onClick={() => {
-                              // Flatten lessons to find next
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              const currentIndex = allLessons.findIndex(l => l.id === lessonId);
                               if (currentIndex < allLessons.length - 1) {
                                  navigate(`/courses/${courseId}/lessons/${allLessons[currentIndex + 1].id}`);
                               }
                            }}
-                           disabled={(() => {
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              return allLessons.findIndex(l => l.id === lessonId) >= allLessons.length - 1;
-                           })()}
+                           disabled={currentIndex >= allLessons.length - 1 || currentIndex === -1}
                         >
                            Next Lesson
                         </Button>
@@ -231,6 +238,7 @@ export const LessonPage: React.FC = () => {
                         ].map(tab => (
                            <button
                               key={tab.id}
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
                               onClick={() => setActiveTab(tab.id as any)}
                               className={cn(
                                  "px-6 py-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors",
