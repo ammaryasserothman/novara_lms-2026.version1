@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { User, Course, Enrollment, Notification, Achievement } from '../types';
 import { COURSES as STATIC_COURSES, CURRENT_USER } from '../data/mockData';
 
@@ -176,23 +176,38 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
-    // 1. Get user categories from enrolled courses
-    const enrolledIds = Object.keys(enrollments);
-    const userCategories = enrolledIds
-      .map(id => courses.find(c => c.id === id)?.category)
-      .filter(Boolean) as string[];
+  const memoizedRecommendations = useMemo(() => {
+    const enrolledIds = new Set(Object.keys(enrollments));
 
-    // 2. Find courses NOT enrolled, prioritizing matching categories
-    return courses
-      .filter(c => !enrolledIds.includes(c.id))
-      .sort((a, b) => {
-        const aMatch = userCategories.includes(a.category) ? 1 : 0;
-        const bMatch = userCategories.includes(b.category) ? 1 : 0;
-        return bMatch - aMatch; // Descending match
-      })
-      .slice(0, 2); // Return top 2
-  };
+    // Create course lookup map for O(1) access
+    const courseMap = new Map(courses.map(c => [c.id, c]));
+
+    // O(1) lookups for categories
+    const userCategories = new Set(
+      Object.keys(enrollments)
+        .map(id => courseMap.get(id)?.category)
+        .filter(Boolean) as string[]
+    );
+
+    const matches: Course[] = [];
+    const nonMatches: Course[] = [];
+
+    // Single pass O(N) lookup
+    for (const c of courses) {
+      if (enrolledIds.has(c.id)) continue;
+
+      if (userCategories.has(c.category)) {
+        matches.push(c);
+        if (matches.length >= 2) break; // Early return optimization
+      } else if (nonMatches.length < 2) {
+        nonMatches.push(c);
+      }
+    }
+
+    return [...matches, ...nonMatches].slice(0, 2);
+  }, [courses, enrollments]);
+
+  const getRecommendedCourses = useCallback(() => memoizedRecommendations, [memoizedRecommendations]);
 
   // Logic to find the next playable video
   const getNextLesson = (courseId: string): string | null => {
