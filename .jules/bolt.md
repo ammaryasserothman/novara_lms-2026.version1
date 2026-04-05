@@ -1,0 +1,3 @@
+## 2024-04-05 - Optimize getRecommendedCourses in GlobalContext
+**Learning:** Found an algorithmic bottleneck in `getRecommendedCourses` where calculating recommendations required `O(N*M)` array iterations and an `O(N log N)` sort operation on every re-render. Since Context lack native value memoization, this triggered massive performance loss as the dataset grew.
+**Action:** Replaced array iterations with O(N) single-pass Set lookups, pre-computed recommendations with `useMemo` to skip calculations on unrelated renders, and returned a `useCallback` to maintain the existing functional interface for dependents.

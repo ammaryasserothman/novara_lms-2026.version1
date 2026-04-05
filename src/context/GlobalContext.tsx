@@ -176,23 +176,43 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
-    // 1. Get user categories from enrolled courses
-    const enrolledIds = Object.keys(enrollments);
-    const userCategories = enrolledIds
-      .map(id => courses.find(c => c.id === id)?.category)
-      .filter(Boolean) as string[];
+  const memoizedRecommendations = React.useMemo(() => {
+    const enrolledIds = new Set(Object.keys(enrollments));
+    const userCategories = new Set<string>();
 
-    // 2. Find courses NOT enrolled, prioritizing matching categories
-    return courses
-      .filter(c => !enrolledIds.includes(c.id))
-      .sort((a, b) => {
-        const aMatch = userCategories.includes(a.category) ? 1 : 0;
-        const bMatch = userCategories.includes(b.category) ? 1 : 0;
-        return bMatch - aMatch; // Descending match
-      })
-      .slice(0, 2); // Return top 2
-  };
+    // 1. Get user categories from enrolled courses (O(N) single pass)
+    for (const course of courses) {
+      if (enrolledIds.has(course.id)) {
+        userCategories.add(course.category);
+      }
+    }
+
+    const recommendations: Course[] = [];
+
+    // 2. Find matching categories first (O(N) single pass)
+    for (const course of courses) {
+      if (!enrolledIds.has(course.id) && userCategories.has(course.category)) {
+        recommendations.push(course);
+        if (recommendations.length >= 2) return recommendations;
+      }
+    }
+
+    // 3. Fallback to any non-enrolled course if needed (O(N) single pass)
+    for (const course of courses) {
+      if (!enrolledIds.has(course.id) && !recommendations.includes(course)) {
+        recommendations.push(course);
+        if (recommendations.length >= 2) return recommendations;
+      }
+    }
+
+    return recommendations;
+  }, [courses, enrollments]);
+
+  // Wrap in useCallback to maintain functional API without causing re-renders
+  const getRecommendedCourses = React.useCallback(
+    () => memoizedRecommendations,
+    [memoizedRecommendations]
+  );
 
   // Logic to find the next playable video
   const getNextLesson = (courseId: string): string | null => {
