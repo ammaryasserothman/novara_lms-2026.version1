@@ -22,6 +22,13 @@ export const LessonPage: React.FC = () => {
    const course = courses.find(c => c.id === courseId);
    const enrollment = enrollments[courseId || ''];
 
+   // ⚡ Bolt Performance Optimization:
+   // Memoize the flattened list of lessons to avoid re-allocating an array
+   // using flatMap multiple times on every render cycle.
+   const allLessons = React.useMemo(() => {
+      return course?.syllabus.flatMap(m => m.lessons) || [];
+   }, [course]);
+
    // Find current lesson and module
    // Use flatMap/find to let TS infer types correctly
    const currentModule = course?.syllabus.find((m: Module) => m.lessons.some((l: Lesson) => l.id === lessonId));
@@ -29,6 +36,10 @@ export const LessonPage: React.FC = () => {
    const currentLesson = currentModule?.lessons.find((l: Lesson) => l.id === lessonId) || null;
 
    if (!course || !currentLesson) return <div>Lesson not found</div>;
+
+   const currentLessonIndex = allLessons.findIndex(l => l.id === lessonId);
+   const isFirstLesson = currentLessonIndex <= 0;
+   const isLastLesson = currentLessonIndex >= allLessons.length - 1;
 
    return (
       <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
@@ -185,17 +196,11 @@ export const LessonPage: React.FC = () => {
                            className="hidden sm:flex"
                            icon={<ChevronLeft size={16} />}
                            onClick={() => {
-                              // Flatten lessons to find previous
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              const currentIndex = allLessons.findIndex(l => l.id === lessonId);
-                              if (currentIndex > 0) {
-                                 navigate(`/courses/${courseId}/lessons/${allLessons[currentIndex - 1].id}`);
+                              if (!isFirstLesson) {
+                                 navigate(`/courses/${courseId}/lessons/${allLessons[currentLessonIndex - 1].id}`);
                               }
                            }}
-                           disabled={(() => {
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              return allLessons.findIndex(l => l.id === lessonId) <= 0;
-                           })()}
+                           disabled={isFirstLesson}
                         >
                            Previous
                         </Button>
@@ -203,17 +208,11 @@ export const LessonPage: React.FC = () => {
                            className="bg-novara-600 hover:bg-novara-700 text-white"
                            icon={<ChevronRight size={16} />}
                            onClick={() => {
-                              // Flatten lessons to find next
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              const currentIndex = allLessons.findIndex(l => l.id === lessonId);
-                              if (currentIndex < allLessons.length - 1) {
-                                 navigate(`/courses/${courseId}/lessons/${allLessons[currentIndex + 1].id}`);
+                              if (!isLastLesson) {
+                                 navigate(`/courses/${courseId}/lessons/${allLessons[currentLessonIndex + 1].id}`);
                               }
                            }}
-                           disabled={(() => {
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              return allLessons.findIndex(l => l.id === lessonId) >= allLessons.length - 1;
-                           })()}
+                           disabled={isLastLesson}
                         >
                            Next Lesson
                         </Button>
@@ -231,7 +230,7 @@ export const LessonPage: React.FC = () => {
                         ].map(tab => (
                            <button
                               key={tab.id}
-                              onClick={() => setActiveTab(tab.id as any)}
+                              onClick={() => setActiveTab(tab.id as 'overview' | 'qa' | 'notes')}
                               className={cn(
                                  "px-6 py-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors",
                                  activeTab === tab.id
