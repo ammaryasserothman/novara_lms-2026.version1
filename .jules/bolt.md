@@ -1,0 +1,3 @@
+## 2024-05-24 - Optimized `getRecommendedCourses` from O(E*C + C log C) to O(C)
+**Learning:** Performing multiple array operations (`map`, `filter`, `includes`, `sort`) on lists of objects dynamically during context value evaluation recalculates derived values on every render and causes significant CPU overhead, especially as datasets grow.
+**Action:** When computing derived values based on related entities in a Context, pre-compute lookup maps (or sets) to reduce complexity to O(C), extract the logic into a `useMemo` block to cache the result, and wrap the getter function in `useCallback` to maintain referential equality and avoid unnecessary component re-renders.
