@@ -15,52 +15,59 @@ export const CertificatesPage: React.FC = () => {
    const { courses, enrollments } = useGlobal();
    const navigate = useNavigate();
 
-   // Derive earned certificates from completed enrollments
-   const earnedCertificates = Object.values(enrollments)
-      .filter(enrollment => enrollment.status === 'completed')
-      .map(enrollment => {
-         const course = courses.find(c => c.id === enrollment.courseId);
-         if (!course) return null;
+   // ⚡ Bolt Optimization:
+   // - Converted O(E * C) lookup to O(E + C) by pre-calculating a Map of courses.
+   // - Combined filtering and mapping into a single pass over enrollments using `forEach`.
+   // - Memoized the derived state so it only recalculates when `enrollments` or `courses` change.
+   const { earnedCertificates, lockedCertificates } = React.useMemo(() => {
+      // Use proper types instead of any
+      const earned: {
+         id: string; courseId: string; title: string; instructor: string;
+         issueDate: string; grade: string; skills: string[]; verified: boolean;
+      }[] = [];
+      const locked: {
+         id: string; courseId: string; title: string; progress: number;
+         totalModules: number; completedModules: number; estimatedDate: string;
+      }[] = [];
+      const courseMap = new Map(courses.map(c => [c.id, c]));
 
-         const completedDate = new Date().toLocaleDateString('en-US', {
-            year: 'numeric', month: 'short', day: 'numeric'
-         });
+      Object.values(enrollments).forEach(enrollment => {
+         const course = courseMap.get(enrollment.courseId);
+         if (!course) return;
 
-         return {
-            id: enrollment.certificateId || `CERT-${enrollment.courseId}`,
-            courseId: enrollment.courseId,
-            title: course.title,
-            instructor: course.instructor,
-            issueDate: completedDate,
-            grade: '100%', // Since we don't track grades yet
-            skills: ['Mastery', 'Completion'],
-            verified: true
-         };
-      })
-      .filter((cert): cert is NonNullable<typeof cert> => cert !== null);
+         if (enrollment.status === 'completed') {
+            const completedDate = new Date().toLocaleDateString('en-US', {
+               year: 'numeric', month: 'short', day: 'numeric'
+            });
 
-   // Derive locked certificates from in-progress enrollments
-   const lockedCertificates = Object.values(enrollments)
-      .filter(enrollment => enrollment.status === 'in_progress')
-      .map(enrollment => {
-         const course = courses.find(c => c.id === enrollment.courseId);
-         if (!course) return null;
+            earned.push({
+               id: enrollment.certificateId || `CERT-${enrollment.courseId}`,
+               courseId: enrollment.courseId,
+               title: course.title,
+               instructor: course.instructor,
+               issueDate: completedDate,
+               grade: '100%',
+               skills: ['Mastery', 'Completion'],
+               verified: true
+            });
+         } else if (enrollment.status === 'in_progress') {
+            const totalLessons = course.syllabus.reduce((acc, m) => acc + m.lessons.length, 0);
+            const completedCount = enrollment.completedLessons.length;
 
-         const totalLessons = course.syllabus.reduce((acc, m) => acc + m.lessons.length, 0);
-         const completedCount = enrollment.completedLessons.length;
+            locked.push({
+               id: `lock-${enrollment.courseId}`,
+               courseId: enrollment.courseId,
+               title: course.title,
+               progress: enrollment.progress,
+               totalModules: course.totalModules,
+               completedModules: Math.floor((completedCount / totalLessons) * course.totalModules),
+               estimatedDate: 'Ongoing'
+            });
+         }
+      });
 
-         return {
-            id: `lock-${enrollment.courseId}`,
-            courseId: enrollment.courseId,
-            title: course.title,
-            progress: enrollment.progress,
-            totalModules: course.totalModules,
-            // Approximate modules based on lesson count logic or use raw lessons
-            completedModules: Math.floor((completedCount / totalLessons) * course.totalModules),
-            estimatedDate: 'Ongoing'
-         };
-      })
-      .filter((cert): cert is NonNullable<typeof cert> => cert !== null);
+      return { earnedCertificates: earned, lockedCertificates: locked };
+   }, [enrollments, courses]);
 
    const [selectedCert, setSelectedCert] = useState<typeof earnedCertificates[0] | null>(null);
    const [searchQuery, setSearchQuery] = useState('');
