@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { User, Course, Enrollment, Notification, Achievement } from '../types';
 import { COURSES as STATIC_COURSES, CURRENT_USER } from '../data/mockData';
 
@@ -175,24 +175,43 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return enrollments[courseId]?.progress || 0;
   };
 
-  // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
-    // 1. Get user categories from enrolled courses
-    const enrolledIds = Object.keys(enrollments);
-    const userCategories = enrolledIds
-      .map(id => courses.find(c => c.id === id)?.category)
-      .filter(Boolean) as string[];
+  // Simple "AI" Recommendation Engine (Optimized to O(N))
+  const memoizedRecommendations = useMemo(() => {
+    const enrolledIds = new Set(Object.keys(enrollments));
+    const userCategories = new Set<string>();
 
-    // 2. Find courses NOT enrolled, prioritizing matching categories
-    return courses
-      .filter(c => !enrolledIds.includes(c.id))
-      .sort((a, b) => {
-        const aMatch = userCategories.includes(a.category) ? 1 : 0;
-        const bMatch = userCategories.includes(b.category) ? 1 : 0;
-        return bMatch - aMatch; // Descending match
-      })
-      .slice(0, 2); // Return top 2
-  };
+    // 1. Find categories of enrolled courses (O(N) pass)
+    for (const course of courses) {
+      if (enrolledIds.has(course.id) && course.category) {
+        userCategories.add(course.category);
+      }
+    }
+
+    const recommended: Course[] = [];
+    const fallback: Course[] = [];
+
+    // 2. Single pass to find recommendations
+    for (const course of courses) {
+      if (!enrolledIds.has(course.id)) {
+        if (userCategories.has(course.category)) {
+          recommended.push(course);
+          if (recommended.length >= 2) break;
+        } else if (fallback.length < 2) {
+          fallback.push(course);
+        }
+      }
+    }
+
+    // 3. Fill with fallbacks if needed
+    for (const course of fallback) {
+      if (recommended.length >= 2) break;
+      recommended.push(course);
+    }
+
+    return recommended;
+  }, [courses, enrollments]);
+
+  const getRecommendedCourses = useCallback(() => memoizedRecommendations, [memoizedRecommendations]);
 
   // Logic to find the next playable video
   const getNextLesson = (courseId: string): string | null => {
