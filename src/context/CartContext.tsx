@@ -1,3 +1,4 @@
+ // eslint-disable-next-line react-refresh/only-export-components
 import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import { Course, CartItem, Coupon } from '../types';
 
@@ -114,6 +115,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useCart = () => {
     const context = useContext(CartContext);
     if (!context) throw new Error('useCart must be used within a CartProvider');
