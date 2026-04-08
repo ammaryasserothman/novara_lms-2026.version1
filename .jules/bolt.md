@@ -1,0 +1,3 @@
+## 2024-10-27 - O(N*M) Bottlenecks During Derived State Rendering
+**Learning:** Sequential `.filter().map()` chains combined with `.find()` inside components deriving state from context data (`courses` and `enrollments`) created a hidden O(E * C) algorithm bottleneck on every render.
+**Action:** When deriving flattened or filtered arrays from nested context state, calculate them in a single pass (`forEach`), use a pre-calculated `Map` for O(1) relationships, and wrap the entire block in `React.useMemo` to prevent unnecessary allocations and processing on each render cycle.
