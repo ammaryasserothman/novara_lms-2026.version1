@@ -148,7 +148,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         completedLessons: newCompleted,
         lastAccessed: new Date(),
         status: isComplete ? 'completed' : 'in_progress',
-        certificateId: isComplete ? `CERT-${Math.random().toString(36).substr(2, 9).toUpperCase()}` : undefined
+        certificateId: isComplete ? `CERT-${crypto.randomUUID().split('-')[0].toUpperCase()}` : undefined
       }
     }));
 
