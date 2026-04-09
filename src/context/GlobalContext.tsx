@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { User, Course, Enrollment, Notification, Achievement } from '../types';
 import { COURSES as STATIC_COURSES, CURRENT_USER } from '../data/mockData';
 
@@ -92,8 +92,27 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // --- ACTIONS ---
 
-  const enrollInCourse = (courseId: string) => {
+  const addNotification = useCallback((title: string, message: string, type: Notification['type']) => {
+    setNotifications(prev => [{
+      id: Date.now().toString(),
+      title,
+      message,
+      type,
+      read: false,
+      timestamp: new Date()
+    }, ...prev]);
+  }, []);
+
+  const unlockAchievement = useCallback((id: string) => {
+    setAchievements(prev => prev.map(a =>
+      a.id === id && !a.unlocked ? { ...a, unlocked: true, unlockedAt: new Date() } : a
+    ));
+  }, []);
+
+  const enrollInCourse = useCallback((courseId: string) => {
     if (enrollments[courseId]) return; // Already enrolled
+
+    const courseTitle = courses.find(c => c.id === courseId)?.title;
 
     setEnrollments(prev => ({
       ...prev,
@@ -106,10 +125,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }));
 
-    addNotification('Course Enrolled', `You have started ${courses.find(c => c.id === courseId)?.title}`, 'success');
-  };
+    addNotification('Course Enrolled', `You have started ${courseTitle}`, 'success');
+  }, [enrollments, courses, addNotification]);
 
-  const markLessonComplete = (courseId: string, lessonId: string) => {
+  const markLessonComplete = useCallback((courseId: string, lessonId: string) => {
     const enrollment = enrollments[courseId];
     if (!enrollment) return; // Should likely auto-enroll or error
     if (enrollment.completedLessons.includes(lessonId)) return; // Already done
@@ -131,7 +150,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         completedLessons: newCompleted,
         lastAccessed: new Date(),
         status: isComplete ? 'completed' : 'in_progress',
-        certificateId: isComplete ? `CERT-${Math.random().toString(36).substr(2, 9).toUpperCase()}` : undefined
+        certificateId: isComplete ? `CERT-${crypto.randomUUID().split('-')[0].toUpperCase()}` : undefined
       }
     }));
 
@@ -140,62 +159,61 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       addNotification('Course Completed! 🎓', `Congratulations! You finished ${course.title}. Certificate available.`, 'success');
       unlockAchievement('a2');
     }
-  };
+  }, [enrollments, courses, addNotification, unlockAchievement]);
 
-  const toggleBookmark = (itemId: string) => {
+  const toggleBookmark = useCallback((itemId: string) => {
     setBookmarks(prev =>
       prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
     );
-  };
+  }, []);
 
-  const markNotificationRead = (id: string) => {
+  const markNotificationRead = useCallback((id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  };
-
-  const addNotification = (title: string, message: string, type: Notification['type']) => {
-    setNotifications(prev => [{
-      id: Date.now().toString(),
-      title,
-      message,
-      type,
-      read: false,
-      timestamp: new Date()
-    }, ...prev]);
-  };
-
-  const unlockAchievement = (id: string) => {
-    setAchievements(prev => prev.map(a =>
-      a.id === id && !a.unlocked ? { ...a, unlocked: true, unlockedAt: new Date() } : a
-    ));
-  };
+  }, []);
 
   // --- GETTERS & AI LOGIC ---
 
-  const getCourseProgress = (courseId: string) => {
+  const getCourseProgress = useCallback((courseId: string) => {
     return enrollments[courseId]?.progress || 0;
-  };
+  }, [enrollments]);
 
-  // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
+  // Pre-calculate recommendations
+  const memoizedRecommendations = useMemo(() => {
+    const enrolledIds = new Set(Object.keys(enrollments));
+
     // 1. Get user categories from enrolled courses
-    const enrolledIds = Object.keys(enrollments);
-    const userCategories = enrolledIds
-      .map(id => courses.find(c => c.id === id)?.category)
-      .filter(Boolean) as string[];
+    const userCategories = new Set<string>();
+    for (const course of courses) {
+      if (enrolledIds.has(course.id) && course.category) {
+        userCategories.add(course.category);
+      }
+    }
 
     // 2. Find courses NOT enrolled, prioritizing matching categories
-    return courses
-      .filter(c => !enrolledIds.includes(c.id))
-      .sort((a, b) => {
-        const aMatch = userCategories.includes(a.category) ? 1 : 0;
-        const bMatch = userCategories.includes(b.category) ? 1 : 0;
-        return bMatch - aMatch; // Descending match
-      })
-      .slice(0, 2); // Return top 2
-  };
+    const recommendations: Course[] = [];
+    const fallbackRecommendations: Course[] = [];
+
+    for (const course of courses) {
+      if (!enrolledIds.has(course.id)) {
+        if (userCategories.has(course.category)) {
+          recommendations.push(course);
+          if (recommendations.length >= 2) break; // Only need 2
+        } else if (fallbackRecommendations.length < 2) {
+          fallbackRecommendations.push(course);
+        }
+      }
+    }
+
+    return [...recommendations, ...fallbackRecommendations].slice(0, 2);
+  }, [enrollments, courses]);
+
+  // Simple "AI" Recommendation Engine
+  const getRecommendedCourses = useCallback(() => {
+    return memoizedRecommendations;
+  }, [memoizedRecommendations]);
 
   // Logic to find the next playable video
-  const getNextLesson = (courseId: string): string | null => {
+  const getNextLesson = useCallback((courseId: string): string | null => {
     const enrollment = enrollments[courseId];
     const course = courses.find(c => c.id === courseId);
     if (!enrollment || !course) return null;
@@ -206,24 +224,40 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Find first lesson NOT in completedLessons
     const next = allLessons.find(l => !enrollment.completedLessons.includes(l.id));
     return next ? next.id : null;
-  };
+  }, [enrollments, courses]);
+
+  const contextValue = useMemo(() => ({
+    currentUser,
+    courses,
+    enrollments,
+    notifications,
+    achievements,
+    bookmarks,
+    enrollInCourse,
+    markLessonComplete,
+    toggleBookmark,
+    markNotificationRead,
+    getCourseProgress,
+    getRecommendedCourses,
+    getNextLesson
+  }), [
+    currentUser,
+    courses,
+    enrollments,
+    notifications,
+    achievements,
+    bookmarks,
+    enrollInCourse,
+    markLessonComplete,
+    toggleBookmark,
+    markNotificationRead,
+    getCourseProgress,
+    getRecommendedCourses,
+    getNextLesson
+  ]);
 
   return (
-    <GlobalContext.Provider value={{
-      currentUser,
-      courses,
-      enrollments,
-      notifications,
-      achievements,
-      bookmarks,
-      enrollInCourse,
-      markLessonComplete,
-      toggleBookmark,
-      markNotificationRead,
-      getCourseProgress,
-      getRecommendedCourses,
-      getNextLesson
-    }}>
+    <GlobalContext.Provider value={contextValue}>
       {children}
     </GlobalContext.Provider>
   );

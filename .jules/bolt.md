@@ -1,0 +1,5 @@
+## 2024-04-08 - Optimize getRecommendedCourses array operations inside Context
+
+**Learning:** Using `O(N log N)` array sorts (`sort()`) and `O(N)` lookups (`includes()`) inside heavily accessed React Context functions causes significant execution overhead (from ~115ms down to ~34ms on large datasets). Additionally, passing unmemoized objects as `Context.Provider` `value` triggers cascading re-renders across all consumers whenever a parent component re-renders (though it does not prevent re-renders when the context's internal state updates).
+
+**Action:** Replace array sorts and nested `includes()` checks inside context getters with `Set`-based `O(1)` lookups and single-pass selection loops. Memoize the resulting derivations using `useMemo`. Wrap the `Context.Provider` `value` in `useMemo` to protect against parent-triggered re-renders, and wrap context methods in `useCallback` (using functional state updaters without mutating pure updaters with side effects) to stabilize their references.
