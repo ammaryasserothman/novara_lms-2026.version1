@@ -1,0 +1,8 @@
+## 2024-04-10 - O(N) Array Operations in GlobalContext
+
+**Learning:** `getRecommendedCourses` used an O(N log N) sorting algorithm + O(N^2) array inclusions (`userCategories.includes(a.category)`) on the full course list on every render when returning recommendations.
+**Action:** Replaced O(N log N) sorting with a single-pass O(N) linear scan using Sets for fast tracking of `enrolledIds` and `userCategories`, falling back when needed without needing to fully scan/sort the array. Avoid `sort` when only finding `N` highest priorities from a list if possible in JavaScript, especially inside context methods. Also wrapped Context Value to use `useMemo` and functions in `useCallback` to prevent cascading re-renders across the app.
+## 2024-04-10 - Side-Effects inside state updater callbacks
+
+**Learning:** When trying to remove variables from the `useCallback` dependency arrays, placing side effects (like `addNotification`, `unlockAchievement`) inside the state updater function `setEnrollments(prev => { ... })` is a severe React anti-pattern. React state updater functions must be pure. Calling side effects inside them will cause duplicate effects in Strict Mode or unpredictable behavior. Also `crypto.randomUUID()` will throw an error in non-secure environments if no fallback is available.
+**Action:** Keep the logic inside the useCallback outer block instead of the state setter function `setEnrollments(prev => { ... })`. Use closure states. If you need to generate UUID safely, ensure a polyfill or fallback like `Math.random().toString(36).substring(2, 9)` is used if `crypto.randomUUID` is unavailable.
