@@ -1,0 +1,3 @@
+## 2026-04-10 - [GlobalContext Recommendation Algorithm O(N)]
+**Learning:** The `getRecommendedCourses` function in `GlobalContext` was computing recommendations on every render with O(N*M) iteration (due to nested `includes`) and an O(N log N) sort. Re-calculating this dynamically inside a monolithic context meant severe performance degradation as the dataset scales.
+**Action:** Always refactor O(N log N) sorts or nested iterations inside Contexts into single-pass O(N) traversals using Sets/Maps. Pre-compute the result using `useMemo` and expose it via a `useCallback` getter to preserve existing APIs without triggering continuous re-calculations.
