@@ -63,6 +63,38 @@ const calculateProgress = (course: Course, completedCount: number): number => {
   return Math.round((completedCount / totalLessons) * 100);
 };
 
+const computeRecommendations = (courses: Course[], enrollments: Record<string, Enrollment>): Course[] => {
+  const enrolledIds = new Set(Object.keys(enrollments));
+  const userCategories = new Set<string>();
+
+  for (const course of courses) {
+    if (enrolledIds.has(course.id) && course.category) {
+      userCategories.add(course.category);
+    }
+  }
+
+  const recommendations: Course[] = [];
+  const fallbacks: Course[] = [];
+
+  for (const course of courses) {
+    if (enrolledIds.has(course.id)) continue;
+
+    if (course.category && userCategories.has(course.category)) {
+      recommendations.push(course);
+      if (recommendations.length >= 2) break;
+    } else if (fallbacks.length < 2) {
+      fallbacks.push(course);
+    }
+  }
+
+  while (recommendations.length < 2 && fallbacks.length > 0) {
+    const fb = fallbacks.shift();
+    if (fb) recommendations.push(fb);
+  }
+
+  return recommendations.slice(0, 2);
+};
+
 export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // --- STATE ---
   const [currentUser] = useState<User>(CURRENT_USER);
@@ -155,7 +187,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         crypto.getRandomValues(array);
         certId = (array[0].toString(36) + array[1].toString(36)).substring(0, 9).toUpperCase();
       } else {
-        certId = Math.random().toString(36).substr(2, 9).toUpperCase(); // Last resort
+        certId = Date.now().toString(36).toUpperCase(); // Last resort
       }
     }
 
@@ -195,40 +227,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [enrollments]);
 
   // Pre-compute recommendations with useMemo to prevent O(N) operations on re-renders
-  const recommendedCoursesMemo = useMemo(() => {
-    const enrolledIds = new Set(Object.keys(enrollments));
-    const userCategories = new Set<string>();
-
-    // 1. Get user categories from enrolled courses in single pass
-    for (const course of courses) {
-      if (enrolledIds.has(course.id) && course.category) {
-        userCategories.add(course.category);
-      }
-    }
-
-    const recommendations: Course[] = [];
-    const fallbacks: Course[] = [];
-
-    // 2. Find matching courses in a single pass O(N)
-    for (const course of courses) {
-      if (enrolledIds.has(course.id)) continue;
-
-      if (course.category && userCategories.has(course.category)) {
-        recommendations.push(course);
-        if (recommendations.length >= 2) break; // Early exit
-      } else if (fallbacks.length < 2) {
-        fallbacks.push(course);
-      }
-    }
-
-    // 3. Fill with fallbacks if needed
-    while (recommendations.length < 2 && fallbacks.length > 0) {
-      const fb = fallbacks.shift();
-      if (fb) recommendations.push(fb);
-    }
-
-    return recommendations.slice(0, 2);
-  }, [courses, enrollments]);
+  const recommendedCoursesMemo = useMemo(
+    () => computeRecommendations(courses, enrollments),
+    [courses, enrollments]
+  );
 
   // Simple "AI" Recommendation Engine (getter to preserve existing API)
   const getRecommendedCourses = useCallback(() => recommendedCoursesMemo, [recommendedCoursesMemo]);
