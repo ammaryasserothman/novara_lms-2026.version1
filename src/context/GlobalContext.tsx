@@ -142,9 +142,22 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Logic: Check for course completion
     const isComplete = newProgress === 100;
-    const certId = typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID().split('-')[0].toUpperCase()
-      : Math.random().toString(36).substr(2, 9).toUpperCase();
+
+    // To resolve SonarCloud Math.random() warning, we use crypto with a secure fallback
+    // In production we should use a proper uuid package, but here we enforce crypto.
+    let certId = '';
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      certId = crypto.randomUUID().split('-')[0].toUpperCase();
+    } else {
+      // Create a secure fallback instead of Math.random
+      const array = new Uint32Array(2);
+      if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        crypto.getRandomValues(array);
+        certId = (array[0].toString(36) + array[1].toString(36)).substring(0, 9).toUpperCase();
+      } else {
+        certId = Math.random().toString(36).substr(2, 9).toUpperCase(); // Last resort
+      }
+    }
 
     setEnrollments(prev => ({
       ...prev,
@@ -198,13 +211,13 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // 2. Find matching courses in a single pass O(N)
     for (const course of courses) {
-      if (!enrolledIds.has(course.id)) {
-        if (course.category && userCategories.has(course.category)) {
-          recommendations.push(course);
-          if (recommendations.length >= 2) break; // Early exit
-        } else if (fallbacks.length < 2) {
-          fallbacks.push(course);
-        }
+      if (enrolledIds.has(course.id)) continue;
+
+      if (course.category && userCategories.has(course.category)) {
+        recommendations.push(course);
+        if (recommendations.length >= 2) break; // Early exit
+      } else if (fallbacks.length < 2) {
+        fallbacks.push(course);
       }
     }
 

@@ -1,0 +1,38 @@
+--- src/context/GlobalContext.tsx
++++ src/context/GlobalContext.tsx
+@@ -108,6 +108,36 @@
+   }, []);
+
++  // Moved outside to reduce Cognitive Complexity for SonarCloud
++  const computeRecommendations = (courses: Course[], enrollments: Record<string, Enrollment>): Course[] => {
++    const enrolledIds = new Set(Object.keys(enrollments));
++    const userCategories = new Set<string>();
++
++    for (const course of courses) {
++      if (enrolledIds.has(course.id) && course.category) {
++        userCategories.add(course.category);
++      }
++    }
++
++    const recommendations: Course[] = [];
++    const fallbacks: Course[] = [];
++
++    for (const course of courses) {
++      if (enrolledIds.has(course.id)) continue;
++
++      if (course.category && userCategories.has(course.category)) {
++        recommendations.push(course);
++        if (recommendations.length >= 2) break;
++      } else if (fallbacks.length < 2) {
++        fallbacks.push(course);
++      }
++    }
++
++    while (recommendations.length < 2 && fallbacks.length > 0) {
++      const fb = fallbacks.shift();
++      if (fb) recommendations.push(fb);
++    }
++
++    return recommendations;
++  };
++
