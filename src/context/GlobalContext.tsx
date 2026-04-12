@@ -200,12 +200,17 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const course = courses.find(c => c.id === courseId);
     if (!enrollment || !course) return null;
 
-    // Flatten all lessons
-    const allLessons = course.syllabus.flatMap(m => m.lessons);
-
-    // Find first lesson NOT in completedLessons
-    const next = allLessons.find(l => !enrollment.completedLessons.includes(l.id));
-    return next ? next.id : null;
+    // Optimize nested array searching by using nested for...of loops for early return
+    // and a Set for O(1) lookups instead of flatMap + find + includes
+    const completedSet = new Set(enrollment.completedLessons);
+    for (const module of course.syllabus) {
+      for (const lesson of module.lessons) {
+        if (!completedSet.has(lesson.id)) {
+          return lesson.id;
+        }
+      }
+    }
+    return null;
   };
 
   return (
