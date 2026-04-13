@@ -176,23 +176,39 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Simple "AI" Recommendation Engine
-  const getRecommendedCourses = () => {
-    // 1. Get user categories from enrolled courses
-    const enrolledIds = Object.keys(enrollments);
-    const userCategories = enrolledIds
-      .map(id => courses.find(c => c.id === id)?.category)
-      .filter(Boolean) as string[];
+  // Optimized to O(N) single-pass lookup using Map/Set
+  const recommendedCoursesMemo = React.useMemo(() => {
+    const enrolledIdsSet = new Set(Object.keys(enrollments));
+    const userCategoriesSet = new Set<string>();
 
-    // 2. Find courses NOT enrolled, prioritizing matching categories
-    return courses
-      .filter(c => !enrolledIds.includes(c.id))
-      .sort((a, b) => {
-        const aMatch = userCategories.includes(a.category) ? 1 : 0;
-        const bMatch = userCategories.includes(b.category) ? 1 : 0;
-        return bMatch - aMatch; // Descending match
-      })
-      .slice(0, 2); // Return top 2
-  };
+    for (const course of courses) {
+      if (enrolledIdsSet.has(course.id) && course.category) {
+        userCategoriesSet.add(course.category);
+      }
+    }
+
+    const recommended: Course[] = [];
+    const others: Course[] = [];
+
+    for (const course of courses) {
+      if (!enrolledIdsSet.has(course.id)) {
+        if (userCategoriesSet.has(course.category)) {
+          recommended.push(course);
+          if (recommended.length >= 2) break;
+        } else if (others.length < 2) {
+          others.push(course);
+        }
+      }
+    }
+
+    while (recommended.length < 2 && others.length > 0) {
+      recommended.push(others.shift()!);
+    }
+
+    return recommended;
+  }, [courses, enrollments]);
+
+  const getRecommendedCourses = React.useCallback(() => recommendedCoursesMemo, [recommendedCoursesMemo]);
 
   // Logic to find the next playable video
   const getNextLesson = (courseId: string): string | null => {
