@@ -1,0 +1,3 @@
+## 2024-04-15 - Array.flatMap + Array.find vs Nested Loops & Sets for Lookups
+**Learning:** In heavily nested mock data structures (like course syllabuses with modules and lessons), using `flatMap` followed by array `.find` with an `.includes` check creates temporary intermediate arrays on every function call and forces O(N^2) space and time traversal. This severely slows down lookups that run repeatedly.
+**Action:** Always optimize nested lookups by using a `Set` for O(1) membership checks and nested `for...of` loops to allow early returns. This prevents full array traversal and avoids unnecessary memory allocation.
