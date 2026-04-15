@@ -200,12 +200,20 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const course = courses.find(c => c.id === courseId);
     if (!enrollment || !course) return null;
 
-    // Flatten all lessons
-    const allLessons = course.syllabus.flatMap(m => m.lessons);
+    // O(1) lookups for completed lessons
+    const completedSet = new Set(enrollment.completedLessons);
 
-    // Find first lesson NOT in completedLessons
-    const next = allLessons.find(l => !enrollment.completedLessons.includes(l.id));
-    return next ? next.id : null;
+    // Nested loop avoids O(N) memory allocation from flatMap
+    // and allows early return when the first incomplete lesson is found
+    for (const module of course.syllabus) {
+      for (const lesson of module.lessons) {
+        if (!completedSet.has(lesson.id)) {
+          return lesson.id;
+        }
+      }
+    }
+
+    return null;
   };
 
   return (
