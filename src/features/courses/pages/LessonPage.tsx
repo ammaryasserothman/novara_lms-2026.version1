@@ -28,6 +28,15 @@ export const LessonPage: React.FC = () => {
    const currentModuleIdx = course?.syllabus.findIndex((m: Module) => m.lessons.some((l: Lesson) => l.id === lessonId)) ?? 0;
    const currentLesson = currentModule?.lessons.find((l: Lesson) => l.id === lessonId) || null;
 
+   // Optimize nested array operations: compute flattened lessons once per course/lesson change.
+   // Replaces inline flatMap/findIndex O(N) operations previously executed on every render cycle.
+   const memoizedLessonData = React.useMemo(() => {
+      if (!course) return { allLessons: [], currentIndex: -1 };
+      const allLessons = course.syllabus.flatMap(m => m.lessons);
+      const currentIndex = allLessons.findIndex(l => l.id === lessonId);
+      return { allLessons, currentIndex };
+   }, [course, lessonId]);
+
    if (!course || !currentLesson) return <div>Lesson not found</div>;
 
    return (
@@ -185,17 +194,12 @@ export const LessonPage: React.FC = () => {
                            className="hidden sm:flex"
                            icon={<ChevronLeft size={16} />}
                            onClick={() => {
-                              // Flatten lessons to find previous
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              const currentIndex = allLessons.findIndex(l => l.id === lessonId);
+                              const { allLessons, currentIndex } = memoizedLessonData;
                               if (currentIndex > 0) {
                                  navigate(`/courses/${courseId}/lessons/${allLessons[currentIndex - 1].id}`);
                               }
                            }}
-                           disabled={(() => {
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              return allLessons.findIndex(l => l.id === lessonId) <= 0;
-                           })()}
+                           disabled={memoizedLessonData.currentIndex <= 0}
                         >
                            Previous
                         </Button>
@@ -203,17 +207,12 @@ export const LessonPage: React.FC = () => {
                            className="bg-novara-600 hover:bg-novara-700 text-white"
                            icon={<ChevronRight size={16} />}
                            onClick={() => {
-                              // Flatten lessons to find next
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              const currentIndex = allLessons.findIndex(l => l.id === lessonId);
-                              if (currentIndex < allLessons.length - 1) {
+                              const { allLessons, currentIndex } = memoizedLessonData;
+                              if (currentIndex < allLessons.length - 1 && currentIndex !== -1) {
                                  navigate(`/courses/${courseId}/lessons/${allLessons[currentIndex + 1].id}`);
                               }
                            }}
-                           disabled={(() => {
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              return allLessons.findIndex(l => l.id === lessonId) >= allLessons.length - 1;
-                           })()}
+                           disabled={memoizedLessonData.currentIndex >= memoizedLessonData.allLessons.length - 1 || memoizedLessonData.currentIndex === -1}
                         >
                            Next Lesson
                         </Button>
