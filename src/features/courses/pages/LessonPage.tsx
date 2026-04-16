@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
    PlayCircle, ChevronLeft, ChevronRight,
@@ -27,6 +27,34 @@ export const LessonPage: React.FC = () => {
    const currentModule = course?.syllabus.find((m: Module) => m.lessons.some((l: Lesson) => l.id === lessonId));
    const currentModuleIdx = course?.syllabus.findIndex((m: Module) => m.lessons.some((l: Lesson) => l.id === lessonId)) ?? 0;
    const currentLesson = currentModule?.lessons.find((l: Lesson) => l.id === lessonId) || null;
+
+   // Pre-calculate prev and next lesson IDs to avoid multiple flatMap traversals
+   const { prevLessonId, nextLessonId } = useMemo(() => {
+      if (!course || !lessonId) return { prevLessonId: null, nextLessonId: null };
+
+      let prev = null;
+      let next = null;
+      let foundCurrent = false;
+
+      // Single pass to find previous and next lessons
+      for (const module of course.syllabus) {
+         for (const lesson of module.lessons) {
+            if (foundCurrent && !next) {
+               next = lesson.id;
+               break; // Found both, we can exit early
+            }
+
+            if (lesson.id === lessonId) {
+               foundCurrent = true;
+            } else if (!foundCurrent) {
+               prev = lesson.id;
+            }
+         }
+         if (next) break;
+      }
+
+      return { prevLessonId: prev, nextLessonId: next };
+   }, [course, lessonId]);
 
    if (!course || !currentLesson) return <div>Lesson not found</div>;
 
@@ -184,36 +212,16 @@ export const LessonPage: React.FC = () => {
                            variant="outline"
                            className="hidden sm:flex"
                            icon={<ChevronLeft size={16} />}
-                           onClick={() => {
-                              // Flatten lessons to find previous
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              const currentIndex = allLessons.findIndex(l => l.id === lessonId);
-                              if (currentIndex > 0) {
-                                 navigate(`/courses/${courseId}/lessons/${allLessons[currentIndex - 1].id}`);
-                              }
-                           }}
-                           disabled={(() => {
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              return allLessons.findIndex(l => l.id === lessonId) <= 0;
-                           })()}
+                           onClick={() => prevLessonId && navigate(`/courses/${courseId}/lessons/${prevLessonId}`)}
+                           disabled={!prevLessonId}
                         >
                            Previous
                         </Button>
                         <Button
                            className="bg-novara-600 hover:bg-novara-700 text-white"
                            icon={<ChevronRight size={16} />}
-                           onClick={() => {
-                              // Flatten lessons to find next
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              const currentIndex = allLessons.findIndex(l => l.id === lessonId);
-                              if (currentIndex < allLessons.length - 1) {
-                                 navigate(`/courses/${courseId}/lessons/${allLessons[currentIndex + 1].id}`);
-                              }
-                           }}
-                           disabled={(() => {
-                              const allLessons = course.syllabus.flatMap(m => m.lessons);
-                              return allLessons.findIndex(l => l.id === lessonId) >= allLessons.length - 1;
-                           })()}
+                           onClick={() => nextLessonId && navigate(`/courses/${courseId}/lessons/${nextLessonId}`)}
+                           disabled={!nextLessonId}
                         >
                            Next Lesson
                         </Button>
