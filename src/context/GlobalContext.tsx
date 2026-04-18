@@ -200,12 +200,16 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const course = courses.find(c => c.id === courseId);
     if (!enrollment || !course) return null;
 
-    // Flatten all lessons
-    const allLessons = course.syllabus.flatMap(m => m.lessons);
+    // Iterate through modules and lessons to find the first incomplete lesson
+    for (const module of course.syllabus) {
+      for (const lesson of module.lessons) {
+        if (!enrollment.completedLessons.includes(lesson.id)) {
+          return lesson.id;
+        }
+      }
+    }
 
-    // Find first lesson NOT in completedLessons
-    const next = allLessons.find(l => !enrollment.completedLessons.includes(l.id));
-    return next ? next.id : null;
+    return null;
   };
 
   return (
