@@ -1,0 +1,3 @@
+## 2026-04-19 - [Pre-calculation optimization in nested arrays]
+**Learning:** Found an anti-pattern in the codebase where `flatMap` was being used repeatedly on the course syllabus (a nested array of modules -> lessons) to find sequential item relationships (like next and previous lesson IDs). This forces a full traversal and creates intermediate arrays on every render, taking O(N) time and memory each time it is called.
+**Action:** Replace multiple `flatMap` or array method traversals on nested structures with a single-pass nested `for...of` loop to pre-calculate all needed variables (e.g., current item, next item, previous item) synchronously before rendering.
