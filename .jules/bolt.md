@@ -1,0 +1,3 @@
+## 2026-04-19 - [Optimize CertificatesPage array derivation]
+**Learning:** Re-calculating array derived states in feature pages that contain nested `find` lookups within map/reduce blocks introduces O(N*M) algorithmic complexity inside the JSX render phase, leading to excessive re-renders and CPU overhead for subscribers to large GlobalContext stores.
+**Action:** When filtering or transforming relational collections inside functional React components based on context data, extract the loop logic into a single pass block using `useMemo`, and pre-calculate any external relation mapping via `Map` (from O(N) to O(1) matching), moving the cost from O(N*M) back to O(N+M) and saving memory allocations.
