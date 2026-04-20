@@ -148,9 +148,11 @@ export const MyCoursesPage: React.FC = () => {
    }, []);
 
    // Performance: Derive MyCourses list only when enrollments/courses change
+   // Optimized to use a Map for O(1) lookups instead of nested find, changing O(E * C) to O(E + C)
    const myCourses = useMemo(() => {
+      const courseMap = new Map(courses.map(c => [c.id, c]));
       return Object.values(enrollments).map(enrollment => {
-         const course = courses.find(c => c.id === enrollment.courseId);
+         const course = courseMap.get(enrollment.courseId);
          if (!course) return null;
          return {
             ...course,
