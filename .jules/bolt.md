@@ -1,0 +1,3 @@
+## 2024-04-19 - Route-level Code Splitting Layout Unmounting
+**Learning:** When implementing route-level code splitting using `React.lazy` and `React.Suspense`, placing the `<Suspense>` boundary incorrectly by wrapping the entire `<Routes>` component causes persistent structural layout components (like sidebars and headers) to unmount during lazy chunk loading, resulting in poor UX and jarring page loads.
+**Action:** Always wrap the actual dynamic content (e.g., `{children}` inside the `<AppLayout>` component) with the `<Suspense>` boundary rather than the top-level `<Routes>`. This allows the static layout to remain visible while the dynamic chunk loads seamlessly.
