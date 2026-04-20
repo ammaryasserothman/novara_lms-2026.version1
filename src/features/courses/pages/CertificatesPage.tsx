@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
    Award, Download, Share2, Eye, Lock,
    QrCode, Printer, X, ChevronRight, Search, ShieldCheck
 } from 'lucide-react';
+import { Course } from '../../../types';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { useAuth } from '../../../context/AuthContext';
@@ -15,52 +16,68 @@ export const CertificatesPage: React.FC = () => {
    const { courses, enrollments } = useGlobal();
    const navigate = useNavigate();
 
-   // Derive earned certificates from completed enrollments
-   const earnedCertificates = Object.values(enrollments)
-      .filter(enrollment => enrollment.status === 'completed')
-      .map(enrollment => {
-         const course = courses.find(c => c.id === enrollment.courseId);
-         if (!course) return null;
+   // Memoize the derivation of earned and locked certificates using a single pass and a Map
+   const { earnedCertificates, lockedCertificates } = useMemo(() => {
+      const courseMap = new Map<string, Course>();
+      for (const course of courses) {
+         courseMap.set(course.id, course);
+      }
 
-         const completedDate = new Date().toLocaleDateString('en-US', {
-            year: 'numeric', month: 'short', day: 'numeric'
-         });
+      const earned: {
+         id: string;
+         courseId: string;
+         title: string;
+         instructor: string;
+         issueDate: string;
+         grade: string;
+         skills: string[];
+         verified: boolean;
+      }[] = [];
+      const locked: {
+         id: string;
+         courseId: string;
+         title: string;
+         progress: number;
+         totalModules: number;
+         completedModules: number;
+         estimatedDate: string;
+      }[] = [];
+      const completedDate = new Date().toLocaleDateString('en-US', {
+         year: 'numeric', month: 'short', day: 'numeric'
+      });
 
-         return {
-            id: enrollment.certificateId || `CERT-${enrollment.courseId}`,
-            courseId: enrollment.courseId,
-            title: course.title,
-            instructor: course.instructor,
-            issueDate: completedDate,
-            grade: '100%', // Since we don't track grades yet
-            skills: ['Mastery', 'Completion'],
-            verified: true
-         };
-      })
-      .filter((cert): cert is NonNullable<typeof cert> => cert !== null);
+      for (const enrollment of Object.values(enrollments)) {
+         const course = courseMap.get(enrollment.courseId);
+         if (!course) continue;
 
-   // Derive locked certificates from in-progress enrollments
-   const lockedCertificates = Object.values(enrollments)
-      .filter(enrollment => enrollment.status === 'in_progress')
-      .map(enrollment => {
-         const course = courses.find(c => c.id === enrollment.courseId);
-         if (!course) return null;
+         if (enrollment.status === 'completed') {
+            earned.push({
+               id: enrollment.certificateId || `CERT-${enrollment.courseId}`,
+               courseId: enrollment.courseId,
+               title: course.title,
+               instructor: course.instructor,
+               issueDate: completedDate,
+               grade: '100%', // Since we don't track grades yet
+               skills: ['Mastery', 'Completion'],
+               verified: true
+            });
+         } else if (enrollment.status === 'in_progress') {
+            const totalLessons = course.syllabus.reduce((acc, m) => acc + m.lessons.length, 0);
+            const completedCount = enrollment.completedLessons.length;
+            locked.push({
+               id: `lock-${enrollment.courseId}`,
+               courseId: enrollment.courseId,
+               title: course.title,
+               progress: enrollment.progress,
+               totalModules: course.totalModules,
+               completedModules: Math.floor((completedCount / totalLessons) * course.totalModules),
+               estimatedDate: 'Ongoing'
+            });
+         }
+      }
 
-         const totalLessons = course.syllabus.reduce((acc, m) => acc + m.lessons.length, 0);
-         const completedCount = enrollment.completedLessons.length;
-
-         return {
-            id: `lock-${enrollment.courseId}`,
-            courseId: enrollment.courseId,
-            title: course.title,
-            progress: enrollment.progress,
-            totalModules: course.totalModules,
-            // Approximate modules based on lesson count logic or use raw lessons
-            completedModules: Math.floor((completedCount / totalLessons) * course.totalModules),
-            estimatedDate: 'Ongoing'
-         };
-      })
-      .filter((cert): cert is NonNullable<typeof cert> => cert !== null);
+      return { earnedCertificates: earned, lockedCertificates: locked };
+   }, [courses, enrollments]);
 
    const [selectedCert, setSelectedCert] = useState<typeof earnedCertificates[0] | null>(null);
    const [searchQuery, setSearchQuery] = useState('');
