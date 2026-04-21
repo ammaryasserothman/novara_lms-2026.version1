@@ -1,0 +1,3 @@
+## 2023-10-27 - [Optimize Lesson Relationships in LessonPage]
+**Learning:** Sequential relationship calculations in nested state arrays (e.g., finding the previous and next lesson by traversing multiple modules) are often O(N^2) or involve multiple O(N) traversals using `flatMap` and `findIndex`. React functional components evaluating this on every render can cause measurable slowdowns when handling complex course structures.
+**Action:** Replace multiple array map/find operations with a single-pass nested `for...of` loop to simultaneously extract the current, previous, and next state elements in O(N) time.
