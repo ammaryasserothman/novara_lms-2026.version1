@@ -9,7 +9,7 @@ import { WelcomeBanner } from '../../../components/dashboard/WelcomeBanner';
 import { StatsOverview } from '../../../components/dashboard/StatsOverview';
 import { ActiveCourseHero } from '../../../components/dashboard/ActiveCourseHero';
 import { RecommendedList } from '../../../components/dashboard/RecommendedList';
-import { BookOpen, TrendingUp, Clock, Calendar as CalendarIcon, MoreHorizontal } from 'lucide-react';
+import { BookOpen, TrendingUp } from 'lucide-react';
 import { RecentTimeline } from '../../../components/dashboard/RecentTimeline';
 
 // --- MOCK ENTERPRISE WIDGETS ---
@@ -48,25 +48,38 @@ export const Dashboard: React.FC = () => {
    const { courses, enrollments, getRecommendedCourses } = useGlobal();
    const navigate = useNavigate();
 
-   if (!user) return null;
+   // Memoized array derivations using a Map for O(1) lookups
+   const { activeCourse, activeEnrollment, otherEnrolledCourses, enrolledCourseIds } = React.useMemo(() => {
+      if (!user) return { activeCourse: undefined, activeEnrollment: null, otherEnrolledCourses: [], enrolledCourseIds: [] };
+      const ids = Object.keys(enrollments);
+      const activeKey = ids.find(id => enrollments[id].status === 'in_progress') || ids[0];
+      const activeEnr = activeKey ? enrollments[activeKey] : null;
 
-   // Logic: Get Active Course (Most recently accessed or highest progress < 100)
-   const enrolledCourseIds = Object.keys(enrollments);
-   const activeEnrollmentKey = enrolledCourseIds.find(id => enrollments[id].status === 'in_progress') || enrolledCourseIds[0];
-   const activeCourse = courses.find(c => c.id === activeEnrollmentKey);
-   const activeEnrollment = activeEnrollmentKey ? enrollments[activeEnrollmentKey] : null;
+      // Create a Map for O(1) course lookups
+      const courseMap = new Map(courses.map(c => [c.id, c]));
+      const activeCrs = courseMap.get(activeKey);
 
-   // Logic: Get other enrolled courses (Max 2 for display)
-   const otherEnrolledCourses = enrolledCourseIds
-      .filter(id => id !== activeEnrollmentKey)
-      .map(id => {
-         const course = courses.find(c => c.id === id);
-         return course ? { ...course, progress: enrollments[id].progress } : null;
-      })
-      .filter((c): c is (Course & { progress: number }) => c !== null)
-      .slice(0, 2);
+      const otherCourses: (Course & { progress: number })[] = [];
+      for (const id of ids) {
+         if (id === activeKey) continue;
+         const course = courseMap.get(id);
+         if (course) {
+            otherCourses.push({ ...course, progress: enrollments[id].progress });
+            if (otherCourses.length === 2) break; // Early break once we have 2
+         }
+      }
+
+      return {
+         activeCourse: activeCrs,
+         activeEnrollment: activeEnr,
+         otherEnrolledCourses: otherCourses,
+         enrolledCourseIds: ids
+      };
+   }, [courses, enrollments, user]);
 
    const recommendations = getRecommendedCourses();
+
+   if (!user) return null;
 
    return (
       <div className="space-y-8 font-sans text-slate-600 animate-fade-in">
