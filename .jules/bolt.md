@@ -1,0 +1,3 @@
+## 2024-11-20 - O(N) array traversals refactor to single pass lookup in LessonPage
+**Learning:** React functional components often suffer from repeated O(N) algorithm complexity when deriving sequential relationships (e.g., `previous`/`next` IDs from deeply nested arrays like `syllabus`->`lessons`) via chained `.flatMap` and `.findIndex` methods on every render or handler click.
+**Action:** Replace multiple `.flatMap` array operations with a single-pass `for...of` loop execution block. This not only avoids repeated array cloning overhead but allows pre-calculating all subsequent, preceding, and current states efficiently in O(N). Avoid wrapping this strictly synchronous calculation inside `useMemo` in React 19 to align with the Compiler's preference.
