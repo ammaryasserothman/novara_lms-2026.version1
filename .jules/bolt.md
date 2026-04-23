@@ -1,0 +1,3 @@
+## 2024-05-14 - Optimize O(N*M) lookup in Dashboard component
+**Learning:** Found an O(N*M) lookup inside the functional component `Dashboard.tsx` where an array of enrolled course IDs was being iterated over, and for each ID, a `courses.find()` was executed to look up the full course object. This re-executed synchronously on every render.
+**Action:** When deriving flattened arrays from nested state or relational lookups in React components, extract the logic into a `useMemo` block, use a `Map` for O(1) external relation lookups, and add an early exit condition (like capping iterations when a display limit is reached) to reduce algorithmic complexity from O(N*M) to O(N+M) and prevent re-allocation on every render.

@@ -48,25 +48,37 @@ export const Dashboard: React.FC = () => {
    const { courses, enrollments, getRecommendedCourses } = useGlobal();
    const navigate = useNavigate();
 
-   if (!user) return null;
-
    // Logic: Get Active Course (Most recently accessed or highest progress < 100)
-   const enrolledCourseIds = Object.keys(enrollments);
-   const activeEnrollmentKey = enrolledCourseIds.find(id => enrollments[id].status === 'in_progress') || enrolledCourseIds[0];
+   // Provide an empty object fallback to avoid crashes if user is not authenticated and enrollments is missing
+   const safeEnrollments = React.useMemo(() => enrollments || {}, [enrollments]);
+   const enrolledCourseIds = Object.keys(safeEnrollments);
+   const activeEnrollmentKey = enrolledCourseIds.find(id => safeEnrollments[id].status === 'in_progress') || enrolledCourseIds[0];
    const activeCourse = courses.find(c => c.id === activeEnrollmentKey);
-   const activeEnrollment = activeEnrollmentKey ? enrollments[activeEnrollmentKey] : null;
+   const activeEnrollment = activeEnrollmentKey ? safeEnrollments[activeEnrollmentKey] : null;
 
    // Logic: Get other enrolled courses (Max 2 for display)
-   const otherEnrolledCourses = enrolledCourseIds
-      .filter(id => id !== activeEnrollmentKey)
-      .map(id => {
-         const course = courses.find(c => c.id === id);
-         return course ? { ...course, progress: enrollments[id].progress } : null;
-      })
-      .filter((c): c is (Course & { progress: number }) => c !== null)
-      .slice(0, 2);
+   const otherEnrolledCourses = React.useMemo(() => {
+      // ⚡ Bolt Optimization: O(1) Map lookup instead of nested O(N) finds
+      const coursesMap = new Map(courses.map(c => [c.id, c]));
+      const result: (Course & { progress: number })[] = [];
+
+      const localEnrolledIds = Object.keys(safeEnrollments);
+      for (const id of localEnrolledIds) {
+         if (id === activeEnrollmentKey) continue;
+
+         const course = coursesMap.get(id);
+         if (course) {
+            result.push({ ...course, progress: safeEnrollments[id].progress });
+            // ⚡ Bolt Optimization: Stop early once limit is reached
+            if (result.length >= 2) break;
+         }
+      }
+      return result;
+   }, [courses, activeEnrollmentKey, safeEnrollments]);
 
    const recommendations = getRecommendedCourses();
+
+   if (!user) return null;
 
    return (
       <div className="space-y-8 font-sans text-slate-600 animate-fade-in">
