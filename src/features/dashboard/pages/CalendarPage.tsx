@@ -89,7 +89,10 @@ export const CalendarPage: React.FC = () => {
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
    // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   // ⚡ Bolt: Memoized to prevent O(N) re-filtering on every render.
+   const filteredEvents = React.useMemo(() => {
+      return EVENTS.filter(e => filter === 'all' || e.type === filter);
+   }, [filter]);
 
    // Events for the current month view
    const getEventsForDay = (day: number) => {
@@ -100,7 +103,10 @@ export const CalendarPage: React.FC = () => {
       );
    };
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   // ⚡ Bolt: Memoized sorting and filtering to avoid expensive operations on each render.
+   const upcomingDeadlines = React.useMemo(() => {
+      return [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   }, [filteredEvents]);
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
