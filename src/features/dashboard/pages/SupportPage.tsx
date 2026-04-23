@@ -275,13 +275,18 @@ export const SupportPage: React.FC = () => {
    const [expandedFaq, setExpandedFaq] = useState<number | null>(1);
    const [formStatus, setFormStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
 
-   const filteredFaqs = FAQS.map(cat => ({
-      ...cat,
-      items: cat.items.filter(item =>
-         item.q.toLowerCase().includes(searchQuery.toLowerCase()) ||
-         item.a.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-   })).filter(cat => cat.items.length > 0);
+   const filteredFaqs = React.useMemo(() => {
+      const query = searchQuery.toLowerCase();
+      if (!query) return FAQS;
+
+      return FAQS.map(cat => ({
+         ...cat,
+         items: cat.items.filter(item =>
+            item.q.toLowerCase().includes(query) ||
+            item.a.toLowerCase().includes(query)
+         )
+      })).filter(cat => cat.items.length > 0);
+   }, [searchQuery]);
 
    return (
       <div className="font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
