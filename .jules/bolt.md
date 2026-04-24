@@ -1,0 +1,3 @@
+## 2024-05-18 - Missing React.useMemo for Filtering
+**Learning:** Found multiple instances where arrays are being filtered without memoization (e.g., `NotificationsPage.tsx`, `SupportPage.tsx`, `CalendarPage.tsx`). In `SupportPage.tsx`, the `filteredFaqs` logic involves mapping, filtering, and repeatedly converting strings to lowercase inside the filter loop, which is an O(N*M) string allocation overhead on every render when typing in the search bar. This is a great opportunity to optimize.
+**Action:** Implement `React.useMemo` for filtering operations that involve mapping or string manipulations, and pull repeated string manipulations (like `searchQuery.toLowerCase()`) out of the inner loop.
