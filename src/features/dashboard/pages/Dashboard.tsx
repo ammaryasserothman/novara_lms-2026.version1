@@ -48,23 +48,32 @@ export const Dashboard: React.FC = () => {
    const { courses, enrollments, getRecommendedCourses } = useGlobal();
    const navigate = useNavigate();
 
-   if (!user) return null;
-
    // Logic: Get Active Course (Most recently accessed or highest progress < 100)
-   const enrolledCourseIds = Object.keys(enrollments);
-   const activeEnrollmentKey = enrolledCourseIds.find(id => enrollments[id].status === 'in_progress') || enrolledCourseIds[0];
-   const activeCourse = courses.find(c => c.id === activeEnrollmentKey);
-   const activeEnrollment = activeEnrollmentKey ? enrollments[activeEnrollmentKey] : null;
+   const enrolledCourseIds = React.useMemo(() => Object.keys(enrollments || {}), [enrollments]);
+   const activeEnrollmentKey = React.useMemo(() =>
+      enrolledCourseIds.find(id => enrollments?.[id]?.status === 'in_progress') || enrolledCourseIds[0],
+      [enrolledCourseIds, enrollments]
+   );
+   const activeCourse = React.useMemo(() => courses.find(c => c.id === activeEnrollmentKey), [courses, activeEnrollmentKey]);
+   const activeEnrollment = activeEnrollmentKey ? enrollments?.[activeEnrollmentKey] : null;
 
    // Logic: Get other enrolled courses (Max 2 for display)
-   const otherEnrolledCourses = enrolledCourseIds
-      .filter(id => id !== activeEnrollmentKey)
-      .map(id => {
+   // Optimization: Replaced O(N*M) chained operations with a single-pass loop that breaks early once the display limit (2) is reached.
+   const otherEnrolledCourses = React.useMemo(() => {
+      const result: (Course & { progress: number })[] = [];
+
+      for (const id of enrolledCourseIds) {
+         if (id === activeEnrollmentKey) continue;
          const course = courses.find(c => c.id === id);
-         return course ? { ...course, progress: enrollments[id].progress } : null;
-      })
-      .filter((c): c is (Course & { progress: number }) => c !== null)
-      .slice(0, 2);
+         if (course) {
+            result.push({ ...course, progress: enrollments[id].progress });
+            if (result.length >= 2) break;
+         }
+      }
+      return result;
+   }, [enrolledCourseIds, activeEnrollmentKey, enrollments, courses]);
+
+   if (!user) return null;
 
    const recommendations = getRecommendedCourses();
 
