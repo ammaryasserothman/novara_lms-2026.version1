@@ -1,0 +1,3 @@
+## 2024-05-18 - Optimized Array Operations in NotificationsPage
+**Learning:** In React functional components, running multiple `.filter()` operations on arrays triggers unnecessary looping overhead (O(N) * number of filters), creating hidden performance bottlenecks especially if state changes often. Combining them in a single pass reduces algorithmic complexity and using `useMemo` avoids recalculations completely unless dependencies (`notifications` or `filter`) actually change.
+**Action:** Use a single-pass `useMemo` approach to simultaneously derive both filtered arrays and aggregates (like count) rather than doing them sequentially.
