@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
    ChevronLeft, ChevronRight, Calendar as CalendarIcon,
    Clock, CheckCircle2, AlertCircle, Video, FileText,
    HelpCircle, MoreHorizontal, ArrowRight, Download,
-   Filter, Plus, RefreshCw
+   Filter, Plus, RefreshCw, X
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -89,18 +89,30 @@ export const CalendarPage: React.FC = () => {
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
    // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   const filteredEvents = useMemo(() => EVENTS.filter(e => filter === 'all' || e.type === filter), [filter]);
 
-   // Events for the current month view
-   const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
-   };
+   // Pre-group events by day for O(1) lookup during render instead of O(N * Days)
+   const eventsByDay = useMemo(() => {
+      const map = new Map<number, typeof EVENTS[0][]>();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+      for (const event of filteredEvents) {
+         if (event.date.getMonth() === currentMonth && event.date.getFullYear() === currentYear) {
+            const day = event.date.getDate();
+            const existing = map.get(day) || [];
+            existing.push(event);
+            map.set(day, existing);
+         }
+      }
+      return map;
+   }, [filteredEvents, currentDate]);
+
+   const upcomingDeadlines = useMemo(() => {
+      return [...filteredEvents]
+         .sort((a, b) => a.date.getTime() - b.date.getTime())
+         .filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   }, [filteredEvents]);
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
@@ -208,7 +220,7 @@ export const CalendarPage: React.FC = () => {
                      {[...Array(daysInMonth)].map((_, i) => {
                         const day = i + 1;
                         const isToday = day === 24 && currentDate.getMonth() === 9; // Mock today as Oct 24
-                        const dayEvents = getEventsForDay(day);
+                        const dayEvents = eventsByDay.get(day) || [];
 
                         return (
                            <div key={day} className={cn("bg-white p-2 min-h-[140px] group hover:bg-slate-50 transition-colors relative flex flex-col gap-1", isToday && "bg-novara-50/10")}>
@@ -344,7 +356,7 @@ export const CalendarPage: React.FC = () => {
                         onClick={() => setSelectedEvent(null)}
                         className="p-2 bg-white/50 hover:bg-white rounded-full transition-colors text-slate-600 backdrop-blur-sm"
                      >
-                        <ArrowRight size={20} className="rotate-45" /> {/* Close icon visual hack using rotate */}
+                        <X size={20} />
                      </button>
                   </div>
 
