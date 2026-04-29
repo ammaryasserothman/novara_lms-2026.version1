@@ -51,20 +51,32 @@ export const Dashboard: React.FC = () => {
    if (!user) return null;
 
    // Logic: Get Active Course (Most recently accessed or highest progress < 100)
-   const enrolledCourseIds = Object.keys(enrollments);
-   const activeEnrollmentKey = enrolledCourseIds.find(id => enrollments[id].status === 'in_progress') || enrolledCourseIds[0];
+   let activeEnrollmentKey: string | undefined;
+   let firstEnrollmentKey: string | undefined;
+   for (const id in enrollments) {
+      if (!firstEnrollmentKey) firstEnrollmentKey = id;
+      if (enrollments[id].status === 'in_progress') {
+         activeEnrollmentKey = id;
+         break;
+      }
+   }
+   activeEnrollmentKey = activeEnrollmentKey || firstEnrollmentKey;
    const activeCourse = courses.find(c => c.id === activeEnrollmentKey);
    const activeEnrollment = activeEnrollmentKey ? enrollments[activeEnrollmentKey] : null;
 
    // Logic: Get other enrolled courses (Max 2 for display)
-   const otherEnrolledCourses = enrolledCourseIds
-      .filter(id => id !== activeEnrollmentKey)
-      .map(id => {
+   // OPTIMIZATION: Single-pass iteration to prevent O(3N) array allocations from filter->map->slice
+   const otherEnrolledCourses: (Course & { progress: number })[] = [];
+   let enrolledCourseCount = 0;
+   for (const id in enrollments) {
+      enrolledCourseCount++;
+      if (id !== activeEnrollmentKey && otherEnrolledCourses.length < 2) {
          const course = courses.find(c => c.id === id);
-         return course ? { ...course, progress: enrollments[id].progress } : null;
-      })
-      .filter((c): c is (Course & { progress: number }) => c !== null)
-      .slice(0, 2);
+         if (course) {
+            otherEnrolledCourses.push({ ...course, progress: enrollments[id].progress });
+         }
+      }
+   }
 
    const recommendations = getRecommendedCourses();
 
@@ -75,7 +87,7 @@ export const Dashboard: React.FC = () => {
          <WelcomeBanner user={user} />
 
          {/* --- STATS ROW --- */}
-         <StatsOverview activeCourse={activeCourse} enrolledCourseCount={enrolledCourseIds.length} />
+         <StatsOverview activeCourse={activeCourse} enrolledCourseCount={enrolledCourseCount} />
 
          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
 
