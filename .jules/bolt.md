@@ -1,0 +1,3 @@
+## 2024-10-24 - [Avoid chained array methods with early returns]
+**Learning:** Using chained array methods (e.g. `Object.keys().filter().map()`) can cause unnecessary O(N) array allocations. However, when refactoring to optimize these inside React components, using `React.useMemo` is not always possible if there are early returns (e.g., `if (!user) return null;`) before the computation, as it violates React's Rules of Hooks.
+**Action:** Instead of `useMemo`, utilize synchronous single-pass `for...in` loops to derive variables after early returns. This optimizes the operations to O(N) allocations without violating hook rules or requiring complex context setups.
