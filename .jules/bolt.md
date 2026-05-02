@@ -1,0 +1,3 @@
+## 2025-05-02 - NotificationsPage Array Iteration Optimization
+**Learning:** Using multiple `.filter()` calls on the same array to calculate different metrics (e.g., filtered lists and total counts) results in unnecessary O(N) traversals on every render.
+**Action:** Consolidate these operations into a single-pass loop within a `React.useMemo` block to reduce algorithmic complexity from O(k*N) to O(N).
