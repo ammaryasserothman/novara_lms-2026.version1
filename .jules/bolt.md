@@ -1,0 +1,3 @@
+## 2024-05-03 - Optimizing chained array methods and Object.keys() calls
+**Learning:** In React components like `Dashboard.tsx`, using `Object.keys()` along with chained array methods (`.filter()`, `.map()`, `.slice()`) can create multiple O(N) array allocations per render. When early returns (e.g. `if (!user) return null;`) prevent the use of `useMemo` due to React Rules of Hooks, these operations can become a performance bottleneck.
+**Action:** Replace `Object.keys()` and chained array methods with single-pass synchronous `for...in` loops. This achieves O(N) time complexity and minimal memory allocation without violating hook rules.
