@@ -9,7 +9,7 @@ import { WelcomeBanner } from '../../../components/dashboard/WelcomeBanner';
 import { StatsOverview } from '../../../components/dashboard/StatsOverview';
 import { ActiveCourseHero } from '../../../components/dashboard/ActiveCourseHero';
 import { RecommendedList } from '../../../components/dashboard/RecommendedList';
-import { BookOpen, TrendingUp, Clock, Calendar as CalendarIcon, MoreHorizontal } from 'lucide-react';
+import { BookOpen, TrendingUp } from 'lucide-react';
 import { RecentTimeline } from '../../../components/dashboard/RecentTimeline';
 
 // --- MOCK ENTERPRISE WIDGETS ---
@@ -50,21 +50,35 @@ export const Dashboard: React.FC = () => {
 
    if (!user) return null;
 
-   // Logic: Get Active Course (Most recently accessed or highest progress < 100)
-   const enrolledCourseIds = Object.keys(enrollments);
-   const activeEnrollmentKey = enrolledCourseIds.find(id => enrollments[id].status === 'in_progress') || enrolledCourseIds[0];
-   const activeCourse = courses.find(c => c.id === activeEnrollmentKey);
+   // Logic: Single-pass optimization to avoid O(N) Object.keys array allocation and chained array loops
+   let activeEnrollmentKey: string | undefined = undefined;
+   let firstKey: string | undefined = undefined;
+   let enrolledCourseCount = 0;
+
+   // 1. Find active enrollment and total count in one pass
+   for (const id in enrollments) {
+      if (enrolledCourseCount === 0) firstKey = id;
+      enrolledCourseCount++;
+      if (!activeEnrollmentKey && enrollments[id].status === 'in_progress') {
+         activeEnrollmentKey = id;
+      }
+   }
+   activeEnrollmentKey = activeEnrollmentKey || firstKey;
+
+   const activeCourse = activeEnrollmentKey ? courses.find(c => c.id === activeEnrollmentKey) : undefined;
    const activeEnrollment = activeEnrollmentKey ? enrollments[activeEnrollmentKey] : null;
 
-   // Logic: Get other enrolled courses (Max 2 for display)
-   const otherEnrolledCourses = enrolledCourseIds
-      .filter(id => id !== activeEnrollmentKey)
-      .map(id => {
+   // 2. Find up to 2 other enrolled courses in one pass (avoiding .filter().map().filter().slice())
+   const otherEnrolledCourses: (Course & { progress: number })[] = [];
+   for (const id in enrollments) {
+      if (id !== activeEnrollmentKey) {
          const course = courses.find(c => c.id === id);
-         return course ? { ...course, progress: enrollments[id].progress } : null;
-      })
-      .filter((c): c is (Course & { progress: number }) => c !== null)
-      .slice(0, 2);
+         if (course) {
+            otherEnrolledCourses.push({ ...course, progress: enrollments[id].progress });
+            if (otherEnrolledCourses.length >= 2) break; // Early exit once we have the 2 needed for display
+         }
+      }
+   }
 
    const recommendations = getRecommendedCourses();
 
@@ -75,7 +89,7 @@ export const Dashboard: React.FC = () => {
          <WelcomeBanner user={user} />
 
          {/* --- STATS ROW --- */}
-         <StatsOverview activeCourse={activeCourse} enrolledCourseCount={enrolledCourseIds.length} />
+         <StatsOverview activeCourse={activeCourse} enrolledCourseCount={enrolledCourseCount} />
 
          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
 
