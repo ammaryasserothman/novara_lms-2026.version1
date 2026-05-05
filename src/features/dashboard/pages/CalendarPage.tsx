@@ -88,19 +88,36 @@ export const CalendarPage: React.FC = () => {
    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-   // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   // Optimize Calendar Performance: Use a single-pass loop with a Map for O(1) day lookups
+   const { upcomingDeadlines, eventsByDay } = React.useMemo(() => {
+      const todayMock = new Date(2024, 9, 20); // Mock "today" as Oct 20
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
 
-   // Events for the current month view
-   const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
-   };
+      const dayMap = new Map<number, typeof EVENTS>();
+      const upcoming: typeof EVENTS = [];
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+      for (const event of EVENTS) {
+         if (filter !== 'all' && event.type !== filter) continue;
+
+         // Group events by day for the current month
+         if (event.date.getMonth() === currentMonth && event.date.getFullYear() === currentYear) {
+            const day = event.date.getDate();
+            const existing = dayMap.get(day) || [];
+            existing.push(event);
+            dayMap.set(day, existing);
+         }
+
+         // Track upcoming deadlines
+         if (event.date >= todayMock) {
+            upcoming.push(event);
+         }
+      }
+
+      upcoming.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+      return { upcomingDeadlines: upcoming, eventsByDay: dayMap };
+   }, [filter, currentDate]);
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
@@ -208,7 +225,7 @@ export const CalendarPage: React.FC = () => {
                      {[...Array(daysInMonth)].map((_, i) => {
                         const day = i + 1;
                         const isToday = day === 24 && currentDate.getMonth() === 9; // Mock today as Oct 24
-                        const dayEvents = getEventsForDay(day);
+                        const dayEvents = eventsByDay.get(day) || [];
 
                         return (
                            <div key={day} className={cn("bg-white p-2 min-h-[140px] group hover:bg-slate-50 transition-colors relative flex flex-col gap-1", isToday && "bg-novara-50/10")}>
