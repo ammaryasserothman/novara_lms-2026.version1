@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Check, Filter } from 'lucide-react';
+import { Bell, Check } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { NotificationItem, NotificationType } from '../components/NotificationItem';
 import { cn } from '../../../utils/cn';
@@ -72,13 +72,30 @@ export const NotificationsPage: React.FC = () => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     };
 
-    const filteredNotifications = notifications.filter(n => {
-        if (filter === 'unread') return !n.isRead;
-        if (filter === 'mentions') return n.type === 'mention';
-        return true;
-    });
+    const { filteredNotifications, unreadCount } = React.useMemo(() => {
+        // ⚡ Bolt Optimization: Single-pass iteration
+        // What: Combined two separate array.filter() calls into one loop.
+        // Why: Prevents multiple traversals over the same notifications array.
+        // Impact: Reduces complexity from O(2N) to O(N) and limits array allocations.
+        const filtered = [];
+        let unread = 0;
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+        for (const n of notifications) {
+            if (!n.isRead) {
+                unread++;
+            }
+
+            if (filter === 'unread') {
+                if (!n.isRead) filtered.push(n);
+            } else if (filter === 'mentions') {
+                if (n.type === 'mention') filtered.push(n);
+            } else {
+                filtered.push(n);
+            }
+        }
+
+        return { filteredNotifications: filtered, unreadCount: unread };
+    }, [notifications, filter]);
 
     return (
         <div className="font-sans text-slate-600 max-w-4xl mx-auto min-h-[calc(100vh-6rem)] py-8 px-4 md:px-0">
@@ -113,13 +130,13 @@ export const NotificationsPage: React.FC = () => {
             {/* CONTROLS */}
             <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-sm mb-6 flex gap-2 overflow-x-auto no-scrollbar">
                 {[
-                    { id: 'all', label: 'All Notifications' },
-                    { id: 'unread', label: 'Unread' },
-                    { id: 'mentions', label: 'Mentions' }
+                    { id: 'all' as const, label: 'All Notifications' },
+                    { id: 'unread' as const, label: 'Unread' },
+                    { id: 'mentions' as const, label: 'Mentions' }
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setFilter(tab.id as any)}
+                        onClick={() => setFilter(tab.id)}
                         className={cn(
                             "px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
                             filter === tab.id
