@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
    Layout, List, Plus, CheckCircle2, Clock,
    MoreVertical, Calendar
@@ -27,6 +27,17 @@ const MOCK_ASSIGNMENTS: Assignment[] = [
 
 export const AssignmentsPage: React.FC = () => {
    const [view, setView] = useState<'kanban' | 'list'>('kanban');
+
+   // ⚡ Bolt Performance Optimization:
+   // Replaced 6 separate O(N) array.filter() calls with a single O(N) pass
+   // that pre-groups assignments by status using useMemo.
+   const groupedAssignments = useMemo(() => {
+      const groups: Record<Assignment['status'], Assignment[]> = { pending: [], submitted: [], graded: [] };
+      for (const assignment of MOCK_ASSIGNMENTS) {
+         groups[assignment.status].push(assignment);
+      }
+      return groups;
+   }, []);
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
@@ -65,11 +76,11 @@ export const AssignmentsPage: React.FC = () => {
                   <div className="flex justify-between items-center text-sm font-bold text-slate-500 px-2 uppercase tracking-wide">
                      <span>To Do</span>
                      <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs">
-                        {MOCK_ASSIGNMENTS.filter(a => a.status === 'pending').length}
+                        {groupedAssignments.pending.length}
                      </span>
                   </div>
                   <div className="space-y-4">
-                     {MOCK_ASSIGNMENTS.filter(a => a.status === 'pending').map(assignment => (
+                     {groupedAssignments.pending.map(assignment => (
                         <AssignmentCard key={assignment.id} assignment={assignment} />
                      ))}
                   </div>
@@ -80,11 +91,11 @@ export const AssignmentsPage: React.FC = () => {
                   <div className="flex justify-between items-center text-sm font-bold text-slate-500 px-2 uppercase tracking-wide">
                      <span>Submitted</span>
                      <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full text-xs">
-                        {MOCK_ASSIGNMENTS.filter(a => a.status === 'submitted').length}
+                        {groupedAssignments.submitted.length}
                      </span>
                   </div>
                   <div className="space-y-4">
-                     {MOCK_ASSIGNMENTS.filter(a => a.status === 'submitted').map(assignment => (
+                     {groupedAssignments.submitted.map(assignment => (
                         <AssignmentCard key={assignment.id} assignment={assignment} />
                      ))}
                   </div>
@@ -95,11 +106,11 @@ export const AssignmentsPage: React.FC = () => {
                   <div className="flex justify-between items-center text-sm font-bold text-slate-500 px-2 uppercase tracking-wide">
                      <span>Graded</span>
                      <span className="bg-green-50 text-green-600 px-2 py-0.5 rounded-full text-xs">
-                        {MOCK_ASSIGNMENTS.filter(a => a.status === 'graded').length}
+                        {groupedAssignments.graded.length}
                      </span>
                   </div>
                   <div className="space-y-4">
-                     {MOCK_ASSIGNMENTS.filter(a => a.status === 'graded').map(assignment => (
+                     {groupedAssignments.graded.map(assignment => (
                         <AssignmentCard key={assignment.id} assignment={assignment} />
                      ))}
                   </div>
