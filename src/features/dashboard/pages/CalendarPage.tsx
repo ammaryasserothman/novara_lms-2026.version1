@@ -88,19 +88,36 @@ export const CalendarPage: React.FC = () => {
    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-   // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   // Combine filtering and sorting into a single useMemo block
+   // Reduces array allocations and O(N) traversals during render
+   const { filteredEvents, upcomingDeadlines } = React.useMemo(() => {
+      const filtered = [];
+      const upcoming = [];
+      const mockToday = new Date(2024, 9, 20).getTime();
+
+      for (const e of EVENTS) {
+         if (filter === 'all' || e.type === filter) {
+            filtered.push(e);
+            if (e.date.getTime() >= mockToday) {
+               upcoming.push(e);
+            }
+         }
+      }
+
+      return {
+         filteredEvents: filtered,
+         upcomingDeadlines: upcoming.sort((a, b) => a.date.getTime() - b.date.getTime())
+      };
+   }, [filter]);
 
    // Events for the current month view
-   const getEventsForDay = (day: number) => {
+   const getEventsForDay = React.useCallback((day: number) => {
       return filteredEvents.filter(e =>
          e.date.getDate() === day &&
          e.date.getMonth() === currentDate.getMonth() &&
          e.date.getFullYear() === currentDate.getFullYear()
       );
-   };
-
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   }, [filteredEvents, currentDate]);
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">

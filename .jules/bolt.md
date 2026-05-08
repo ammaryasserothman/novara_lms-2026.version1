@@ -1,0 +1,3 @@
+## 2024-10-24 - Single-Pass Loops over Chained Array Methods
+**Learning:** Using chained array methods like `.filter().map()` or multiple `.filter()` calls to derive different arrays/metrics from the same dataset can lead to O(k*N) complexity and redundant iterations. In functional React components, combining these into a single-pass loop within a `React.useMemo` block reduces algorithmic complexity to O(N).
+**Action:** When calculating both filtered arrays and derived metrics (like counts) or maintaining multiple filtered views based on a condition, always opt for a single-pass loop within `useMemo` instead of chaining `.filter()`, `.map()`, or `.reduce()` calls to minimize O(N) traversals and array allocations.
