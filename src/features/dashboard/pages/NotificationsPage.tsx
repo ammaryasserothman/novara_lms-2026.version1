@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Check, Filter } from 'lucide-react';
+import { Bell, Check } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { NotificationItem, NotificationType } from '../components/NotificationItem';
 import { cn } from '../../../utils/cn';
@@ -72,13 +72,26 @@ export const NotificationsPage: React.FC = () => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     };
 
-    const filteredNotifications = notifications.filter(n => {
-        if (filter === 'unread') return !n.isRead;
-        if (filter === 'mentions') return n.type === 'mention';
-        return true;
-    });
+    // ⚡ Bolt Optimization: Calculate derived state in a single-pass loop with useMemo
+    // Resolves O(2N) filtering and prevents recalculation on unrelated re-renders
+    const { filteredNotifications, unreadCount } = React.useMemo(() => {
+        let unread = 0;
+        const filtered = [];
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+        for (const n of notifications) {
+            if (!n.isRead) unread++;
+
+            if (filter === 'unread') {
+                if (!n.isRead) filtered.push(n);
+            } else if (filter === 'mentions') {
+                if (n.type === 'mention') filtered.push(n);
+            } else {
+                filtered.push(n);
+            }
+        }
+
+        return { filteredNotifications: filtered, unreadCount: unread };
+    }, [notifications, filter]);
 
     return (
         <div className="font-sans text-slate-600 max-w-4xl mx-auto min-h-[calc(100vh-6rem)] py-8 px-4 md:px-0">
@@ -119,7 +132,7 @@ export const NotificationsPage: React.FC = () => {
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setFilter(tab.id as any)}
+                        onClick={() => setFilter(tab.id as 'all' | 'unread' | 'mentions')}
                         className={cn(
                             "px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
                             filter === tab.id
