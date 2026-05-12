@@ -88,19 +88,37 @@ export const CalendarPage: React.FC = () => {
    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-   // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   // Memoize event filtering, grouping, and deadline calculation
+   const { eventsByDay, upcomingDeadlines } = React.useMemo(() => {
+      const filtered = EVENTS.filter(e => filter === 'all' || e.type === filter);
+      const byDay = new Map<number, typeof EVENTS>();
+      const upcoming: typeof EVENTS = [];
+      const mockToday = new Date(2024, 9, 20).getTime();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
 
-   // Events for the current month view
-   const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
-   };
+      for (const event of filtered) {
+         // Group by day for the current month
+         if (event.date.getMonth() === currentMonth && event.date.getFullYear() === currentYear) {
+            const day = event.date.getDate();
+            if (!byDay.has(day)) {
+               byDay.set(day, []);
+            }
+            byDay.get(day)!.push(event);
+         }
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+         // Collect upcoming deadlines
+         if (event.date.getTime() >= mockToday) {
+            upcoming.push(event);
+         }
+      }
+
+      upcoming.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+      return { eventsByDay: byDay, upcomingDeadlines: upcoming };
+   }, [filter, currentDate]);
+
+   const getEventsForDay = (day: number) => eventsByDay.get(day) || [];
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
