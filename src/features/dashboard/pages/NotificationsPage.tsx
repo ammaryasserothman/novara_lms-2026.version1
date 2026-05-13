@@ -72,13 +72,31 @@ export const NotificationsPage: React.FC = () => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     };
 
-    const filteredNotifications = notifications.filter(n => {
-        if (filter === 'unread') return !n.isRead;
-        if (filter === 'mentions') return n.type === 'mention';
-        return true;
-    });
+    const { filteredNotifications, unreadCount } = React.useMemo(() => {
+        const filtered = [];
+        let unread = 0;
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+        for (const n of notifications) {
+            // Count unread notifications
+            if (!n.isRead) {
+                unread++;
+            }
+
+            // Filter notifications based on current filter state
+            let matchesFilter = true;
+            if (filter === 'unread') {
+                matchesFilter = !n.isRead;
+            } else if (filter === 'mentions') {
+                matchesFilter = n.type === 'mention';
+            }
+
+            if (matchesFilter) {
+                filtered.push(n);
+            }
+        }
+
+        return { filteredNotifications: filtered, unreadCount: unread };
+    }, [notifications, filter]);
 
     return (
         <div className="font-sans text-slate-600 max-w-4xl mx-auto min-h-[calc(100vh-6rem)] py-8 px-4 md:px-0">
