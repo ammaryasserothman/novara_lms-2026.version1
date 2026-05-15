@@ -1,0 +1,3 @@
+## 2024-05-15 - React Component Multiple Array Filter Replacements
+**Learning:** Avoid multiple O(N) array `.filter()` loops during render specifically for tracking state counts or grouping properties within columns. Repeatedly filtering the same array for various properties (like "status" within an assignments list) inside a React component's main body will execute these redundant O(N) operations on *every single render*.
+**Action:** Consolidate multiple `.filter()` derivations into a single-pass loop utilizing `React.useMemo`. Calculate counts or group array elements directly, achieving O(N) complexity instead of O(k*N), where k is the number of filtered attributes or columns to compute.
