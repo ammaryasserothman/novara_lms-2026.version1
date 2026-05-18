@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Check, Filter } from 'lucide-react';
+import { Bell, Check } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { NotificationItem, NotificationType } from '../components/NotificationItem';
 import { cn } from '../../../utils/cn';
@@ -72,13 +72,24 @@ export const NotificationsPage: React.FC = () => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     };
 
-    const filteredNotifications = notifications.filter(n => {
-        if (filter === 'unread') return !n.isRead;
-        if (filter === 'mentions') return n.type === 'mention';
-        return true;
-    });
-
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+    const { filteredNotifications, unreadCount } = React.useMemo(() => {
+        const result = {
+            filteredNotifications: [] as typeof notifications,
+            unreadCount: 0
+        };
+        for (const n of notifications) {
+            if (!n.isRead) {
+                result.unreadCount++;
+            }
+            let keep = true;
+            if (filter === 'unread' && n.isRead) keep = false;
+            if (filter === 'mentions' && n.type !== 'mention') keep = false;
+            if (keep) {
+                result.filteredNotifications.push(n);
+            }
+        }
+        return result;
+    }, [notifications, filter]);
 
     return (
         <div className="font-sans text-slate-600 max-w-4xl mx-auto min-h-[calc(100vh-6rem)] py-8 px-4 md:px-0">
@@ -119,7 +130,7 @@ export const NotificationsPage: React.FC = () => {
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setFilter(tab.id as any)}
+                        onClick={() => setFilter(tab.id as 'all' | 'unread' | 'mentions')}
                         className={cn(
                             "px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
                             filter === tab.id
