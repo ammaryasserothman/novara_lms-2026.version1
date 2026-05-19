@@ -72,13 +72,21 @@ export const NotificationsPage: React.FC = () => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     };
 
-    const filteredNotifications = notifications.filter(n => {
-        if (filter === 'unread') return !n.isRead;
-        if (filter === 'mentions') return n.type === 'mention';
-        return true;
-    });
+    // ⚡ Bolt: Compute filtered array and unread count in a single pass to reduce O(k*N) multiple filter calls to O(N)
+    const { filteredNotifications, unreadCount } = React.useMemo(() => {
+        let unread = 0;
+        const filtered = [];
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+        for (const n of notifications) {
+            if (!n.isRead) {
+                unread++;
+            }
+            if (filter === 'all' || (filter === 'unread' && !n.isRead) || (filter === 'mentions' && n.type === 'mention')) {
+                filtered.push(n);
+            }
+        }
+        return { filteredNotifications: filtered, unreadCount: unread };
+    }, [notifications, filter]);
 
     return (
         <div className="font-sans text-slate-600 max-w-4xl mx-auto min-h-[calc(100vh-6rem)] py-8 px-4 md:px-0">

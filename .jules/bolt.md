@@ -1,0 +1,3 @@
+## 2024-05-19 - Combine multiple array filters into single-pass memoized loop
+**Learning:** Found multiple O(N) array filter operations for generating both a filtered list and an unread count in `NotificationsPage`. Since they operate on the exact same array, combining them into a single-pass `for...of` loop inside a `useMemo` block reduces the algorithmic complexity from O(k*N) to O(N), which is especially important for components that handle larger data collections over time.
+**Action:** When computing multiple derived states (e.g. filtered views, aggregate counts) from the same base collection, use `useMemo` with a single-pass loop instead of chaining multiple `.filter()` or `.reduce()` calls, particularly in lists that could grow large.
