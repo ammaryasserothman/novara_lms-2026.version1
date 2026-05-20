@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Check, Filter } from 'lucide-react';
+import { Bell, Check } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { NotificationItem, NotificationType } from '../components/NotificationItem';
 import { cn } from '../../../utils/cn';
@@ -72,13 +72,28 @@ export const NotificationsPage: React.FC = () => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     };
 
-    const filteredNotifications = notifications.filter(n => {
-        if (filter === 'unread') return !n.isRead;
-        if (filter === 'mentions') return n.type === 'mention';
-        return true;
-    });
+    // ⚡ Bolt Performance Optimization
+    // Combined multiple O(N) array filter operations into a single-pass loop within useMemo.
+    // This reduces algorithmic complexity from O(2N) to O(N) and prevents unnecessary array allocations on every render.
+    const { filteredNotifications, unreadCount } = React.useMemo(() => {
+        let unreadCount = 0;
+        const filteredNotifications = [];
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+        for (let i = 0; i < notifications.length; i++) {
+            const n = notifications[i];
+
+            if (!n.isRead) {
+                unreadCount++;
+            }
+
+            if (filter === 'unread' && n.isRead) continue;
+            if (filter === 'mentions' && n.type !== 'mention') continue;
+
+            filteredNotifications.push(n);
+        }
+
+        return { filteredNotifications, unreadCount };
+    }, [notifications, filter]);
 
     return (
         <div className="font-sans text-slate-600 max-w-4xl mx-auto min-h-[calc(100vh-6rem)] py-8 px-4 md:px-0">
