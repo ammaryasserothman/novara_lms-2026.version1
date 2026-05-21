@@ -1,0 +1,3 @@
+## 2025-02-28 - Notifications Single-Pass Filtering Optimization
+**Learning:** React component derived state often involves multiple passes over an array (e.g. `const filtered = arr.filter(...); const count = arr.filter(...).length;`). If the array is moderately sized and operations execute on every render, it can impact performance.
+**Action:** When computing both filtered lists and aggregate metrics (e.g. counts) from the same source array, combine these derivations into a single-pass loop wrapped in a `React.useMemo` block. This reduces algorithmic complexity from O(k*N) to O(N) and prevents unnecessary recalculation on unrelated re-renders.
