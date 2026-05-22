@@ -1,0 +1,3 @@
+## 2024-05-23 - Optimize Notifications filtering and counting
+**Learning:** Declarative array methods like `.filter().length` followed by `.filter()` can lead to redundant O(N) operations. When encountering multiple passes on the same collection for both mapping/filtering and derived aggregate metrics (like counts) in functional React components, merging them into a single-pass loop within a `React.useMemo` significantly reduces algorithmic complexity without relying on additional variables that would break the Rules of Hooks or React re-renders.
+**Action:** When deriving both filtered collections and counts from a single array, use a single-pass `for` loop inside `useMemo` returning an object with both values instead of chaining multiple `.filter()` calls.

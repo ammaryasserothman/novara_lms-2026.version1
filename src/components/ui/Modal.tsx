@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
@@ -13,7 +13,7 @@ interface ModalProps {
     maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, className, maxWidth = 'md' }) => {
     useEffect(() => {
         if (isOpen) {

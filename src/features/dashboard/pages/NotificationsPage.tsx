@@ -72,13 +72,31 @@ export const NotificationsPage: React.FC = () => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     };
 
-    const filteredNotifications = notifications.filter(n => {
-        if (filter === 'unread') return !n.isRead;
-        if (filter === 'mentions') return n.type === 'mention';
-        return true;
-    });
+    // ⚡ Bolt: Optimize by combining filter and count into a single pass using useMemo
+    const { filteredNotifications, unreadCount } = React.useMemo(() => {
+        let count = 0;
+        const filtered = [];
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+        for (let i = 0; i < notifications.length; i++) {
+            const n = notifications[i];
+
+            // Count unread
+            if (!n.isRead) {
+                count++;
+            }
+
+            // Filter
+            let shouldInclude = true;
+            if (filter === 'unread') shouldInclude = !n.isRead;
+            else if (filter === 'mentions') shouldInclude = n.type === 'mention';
+
+            if (shouldInclude) {
+                filtered.push(n);
+            }
+        }
+
+        return { filteredNotifications: filtered, unreadCount: count };
+    }, [notifications, filter]);
 
     return (
         <div className="font-sans text-slate-600 max-w-4xl mx-auto min-h-[calc(100vh-6rem)] py-8 px-4 md:px-0">
