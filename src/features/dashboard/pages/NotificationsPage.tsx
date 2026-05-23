@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Check, Filter } from 'lucide-react';
+import { Bell, Check } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { NotificationItem, NotificationType } from '../components/NotificationItem';
 import { cn } from '../../../utils/cn';
@@ -72,13 +72,32 @@ export const NotificationsPage: React.FC = () => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     };
 
-    const filteredNotifications = notifications.filter(n => {
-        if (filter === 'unread') return !n.isRead;
-        if (filter === 'mentions') return n.type === 'mention';
-        return true;
-    });
+    // ⚡ Bolt: Optimize notification filtering and counting
+    // Reduces algorithmic complexity from O(2N) to O(N) by computing both derivations in a single pass.
+    // Memoized to prevent re-calculations on unrelated state changes.
+    const { filteredNotifications, unreadCount } = React.useMemo(() => {
+        return notifications.reduce(
+            (acc, n) => {
+                // Count unread
+                if (!n.isRead) {
+                    acc.unreadCount += 1;
+                }
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+                // Filter logic
+                const matchesFilter =
+                    filter === 'all' ||
+                    (filter === 'unread' && !n.isRead) ||
+                    (filter === 'mentions' && n.type === 'mention');
+
+                if (matchesFilter) {
+                    acc.filteredNotifications.push(n);
+                }
+
+                return acc;
+            },
+            { filteredNotifications: [] as typeof notifications, unreadCount: 0 }
+        );
+    }, [notifications, filter]);
 
     return (
         <div className="font-sans text-slate-600 max-w-4xl mx-auto min-h-[calc(100vh-6rem)] py-8 px-4 md:px-0">
@@ -119,7 +138,7 @@ export const NotificationsPage: React.FC = () => {
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setFilter(tab.id as any)}
+                        onClick={() => setFilter(tab.id as 'all' | 'unread' | 'mentions')}
                         className={cn(
                             "px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
                             filter === tab.id
