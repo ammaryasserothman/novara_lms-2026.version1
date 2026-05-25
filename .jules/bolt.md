@@ -1,0 +1,3 @@
+## 2024-05-25 - Single-pass Derivations Optimization
+**Learning:** In React components like `NotificationsPage` or `CalendarPage`, iterating over arrays multiple times for derivations (e.g., computing a filtered list and separately calculating an aggregate count from the same data) introduces O(k*N) time complexity where N is the array length and k is the number of loops.
+**Action:** Always combine filtered list creation and aggregate metric calculations into a single-pass loop within a `React.useMemo` block. This reduces algorithmic complexity from O(k*N) to O(N) and prevents unnecessary re-calculations on unrelated renders.
