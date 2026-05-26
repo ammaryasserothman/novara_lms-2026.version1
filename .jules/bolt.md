@@ -1,0 +1,3 @@
+## 2024-05-26 - Optimize React derivations with useMemo and single-pass loops
+**Learning:** React functional components often derive multiple pieces of state (like filtered lists and unread counts) from the same base array using multiple chained `.filter()` or `.reduce()` calls. This results in O(k*N) complexity where k is the number of derivations, and causes unnecessary recalculation on every render.
+**Action:** When computing both filtered lists and aggregate metrics from the same array, combine these derivations into a single-pass `for...of` loop within a `React.useMemo` block. This reduces algorithmic complexity from O(k*N) to O(N) and ensures the derivation only runs when dependencies change.
