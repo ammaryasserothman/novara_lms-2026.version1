@@ -139,10 +139,10 @@ export const CalendarPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
                {/* View Toggles */}
                <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto shadow-inner">
-                  {['month', 'week', 'day'].map((v) => (
+                  {(['month', 'week', 'day'] as const).map((v) => (
                      <button
                         key={v}
-                        onClick={() => setView(v as 'month' | 'week' | 'day')}
+                        onClick={() => setView(v)}
                         className={cn(
                            "flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold capitalize transition-all",
                            view === v
@@ -186,10 +186,10 @@ export const CalendarPage: React.FC = () => {
 
                   <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 no-scrollbar">
                      <Filter size={16} className="text-slate-400 mr-2 shrink-0" />
-                     {['all', 'quiz', 'assignment', 'live'].map(f => (
+                     {(['all', 'quiz', 'assignment', 'live'] as const).map(f => (
                         <button
                            key={f}
-                           onClick={() => setFilter(f as 'all' | 'quiz' | 'assignment' | 'live')}
+                           onClick={() => setFilter(f)}
                            className={cn(
                               "px-3 py-1.5 rounded-full text-xs font-bold capitalize border transition-all whitespace-nowrap",
                               filter === f
