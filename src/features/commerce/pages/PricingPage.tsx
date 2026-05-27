@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useGlobal } from '../../../context/GlobalContext';
 import { useCart } from '../../../context/CartContext';
 import { Card } from '../../../components/ui/Card';
@@ -13,18 +13,18 @@ export const PricingPage: React.FC = () => {
     const [filter, setFilter] = useState('All');
 
     // Mock pricing data since it's not in the main data yet
-    const PRICED_COURSES = courses.map(c => ({
+    const PRICED_COURSES = useMemo(() => courses.map(c => ({
         ...c,
         price: 49.99 + (c.totalModules * 5), // dynamic mock price
         originalPrice: 79.99 + (c.totalModules * 5),
         features: ['Certificate of Completion', 'Lifetime Access', `${c.totalModules} Modules`, 'Project Files']
-    }));
+    })), [courses]);
 
-    const categories = ['All', ...Array.from(new Set(courses.map(c => c.category)))];
+    const categories = useMemo(() => ['All', ...Array.from(new Set(courses.map(c => c.category)))], [courses]);
 
-    const filteredCourses = filter === 'All'
+    const filteredCourses = useMemo(() => filter === 'All'
         ? PRICED_COURSES
-        : PRICED_COURSES.filter(c => c.category === filter);
+        : PRICED_COURSES.filter(c => c.category === filter), [filter, PRICED_COURSES]);
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-600 pb-20">
