@@ -1,0 +1,3 @@
+## 2024-05-28 - Optimize Calendar View Event Lookup
+**Learning:** Found an O(N*D) filtering bottleneck in the Calendar component where events were being filtered by iterating over the entire array for each day rendered in the calendar grid.
+**Action:** When filtering or transforming relational collections based on context data in functional React components (like matching events to days), extract the loop logic into a single pass block using `useMemo` and pre-calculate any external relation mappings using a `Map` or grouped object for O(1) lookups, reducing the algorithmic complexity from O(N*D) to O(N+D).
