@@ -1,0 +1,3 @@
+## 2024-05-29 - Pre-grouping nested loop collections with useMemo Maps
+**Learning:** When generating grid components (like a month calendar) that filter a collection of items (like events) for each cell, doing `.filter()` inside the loop creates an O(N*D) performance bottleneck.
+**Action:** Extract the `.filter()` operation out of the render loop by pre-calculating the grouping using a `Map` wrapped in a `React.useMemo` hook, keyed by the target condition (e.g. day of month). This converts the complexity to O(N) for map creation + O(1) map lookup per cell, drastically reducing redundant array iterations.
