@@ -88,19 +88,38 @@ export const CalendarPage: React.FC = () => {
    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-   // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   // Filter Events (Memoized)
+   const filteredEvents = React.useMemo(() => {
+      return EVENTS.filter(e => filter === 'all' || e.type === filter);
+   }, [filter]);
+
+   // Group events by day to avoid O(N*D) filtering in the render loop
+   const eventsByDay = React.useMemo(() => {
+      const map = new Map<number, typeof EVENTS>();
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+
+      filteredEvents.forEach(e => {
+         if (e.date.getMonth() === month && e.date.getFullYear() === year) {
+            const day = e.date.getDate();
+            if (!map.has(day)) map.set(day, []);
+            map.get(day)!.push(e);
+         }
+      });
+      return map;
+   }, [filteredEvents, currentDate]);
 
    // Events for the current month view
-   const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
-   };
+   const getEventsForDay = React.useCallback((day: number) => {
+      return eventsByDay.get(day) || [];
+   }, [eventsByDay]);
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   // Memoize upcoming deadlines to prevent O(N log N) sorting on every render
+   const upcomingDeadlines = React.useMemo(() => {
+      return [...filteredEvents]
+         .filter(e => e.date >= new Date(2024, 9, 20))
+         .sort((a, b) => a.date.getTime() - b.date.getTime());
+   }, [filteredEvents]);
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
