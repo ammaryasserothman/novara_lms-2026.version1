@@ -88,19 +88,37 @@ export const CalendarPage: React.FC = () => {
    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-   // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   // Filter Events & Group by Day
+   const { eventsByDay, upcomingDeadlines } = React.useMemo(() => {
+      const filtered = EVENTS.filter(e => filter === 'all' || e.type === filter);
 
-   // Events for the current month view
-   const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
-   };
+      const map = new Map<number, typeof EVENTS[0][]>();
+      const upcoming: typeof EVENTS[0][] = [];
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+      const mockToday = new Date(2024, 9, 20);
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+      for (let i = 0; i < filtered.length; i++) {
+         const event = filtered[i];
+         // Group by day for the current month view
+         if (event.date.getMonth() === currentMonth && event.date.getFullYear() === currentYear) {
+            const day = event.date.getDate();
+            const dayEvents = map.get(day) || [];
+            dayEvents.push(event);
+            map.set(day, dayEvents);
+         }
+         // Filter upcoming
+         if (event.date >= mockToday) {
+            upcoming.push(event);
+         }
+      }
+
+      upcoming.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+      return { eventsByDay: map, upcomingDeadlines: upcoming };
+   }, [filter, currentDate]);
+
+   const getEventsForDay = (day: number) => eventsByDay.get(day) || [];
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
