@@ -88,19 +88,40 @@ export const CalendarPage: React.FC = () => {
    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-   // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   // ⚡ Bolt Performance Optimization
+   // Memoize filtered events to avoid O(N) recalculation on every render
+   const filteredEvents = React.useMemo(() => {
+      return EVENTS.filter(e => filter === 'all' || e.type === filter);
+   }, [filter]);
 
-   // Events for the current month view
-   const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
-   };
+   // ⚡ Bolt Performance Optimization
+   // Pre-group events using a Map within a React.useMemo block keyed by day
+   // This reduces retrieval from an O(N) array filter to an O(1) map lookup per day, avoiding O(N*D) filtering inside render loops
+   const eventsByDay = React.useMemo(() => {
+      const map = new Map<number, typeof EVENTS>();
+      filteredEvents.forEach(e => {
+         if (
+            e.date.getMonth() === currentDate.getMonth() &&
+            e.date.getFullYear() === currentDate.getFullYear()
+         ) {
+            const day = e.date.getDate();
+            const existing = map.get(day) || [];
+            existing.push(e);
+            map.set(day, existing);
+         }
+      });
+      return map;
+   }, [filteredEvents, currentDate]);
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   const getEventsForDay = (day: number) => eventsByDay.get(day) || [];
+
+   // ⚡ Bolt Performance Optimization
+   // Memoize expensive sorting operation to prevent O(N log N) recalculation on every render
+   const upcomingDeadlines = React.useMemo(() => {
+      return [...filteredEvents]
+         .sort((a, b) => a.date.getTime() - b.date.getTime())
+         .filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   }, [filteredEvents]);
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">

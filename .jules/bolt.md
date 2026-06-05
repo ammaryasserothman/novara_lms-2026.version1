@@ -1,0 +1,3 @@
+## 2024-10-24 - Calendar View Optimization
+**Learning:** In a dashboard where events are mapped onto a calendar, repeatedly filtering a single array of events for each day inside a `for...of` or `map` loop leads to O(N*D) time complexity (where N is the number of events and D is the days in a month). This becomes a noticeable bottleneck as the number of events grows.
+**Action:** When organizing events by date, use `React.useMemo` to pre-group the filtered array into a `Map` keyed by day. This reduces retrieval during render loops from an O(N) operation to an O(1) map lookup per day, drastically improving scaling. Always apply this to UI components mapping collections over grid or list patterns where items are grouped by matching keys.
