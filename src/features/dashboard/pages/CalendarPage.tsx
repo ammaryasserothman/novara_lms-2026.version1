@@ -89,16 +89,31 @@ export const CalendarPage: React.FC = () => {
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
    // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   const filteredEvents = React.useMemo(() => EVENTS.filter(e => filter === 'all' || e.type === filter), [filter]);
 
-   // Events for the current month view
-   const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
-   };
+   // Optimize: Pre-group events by day for O(1) lookup during render instead of O(N) filter per day
+   const eventsByDay = React.useMemo(() => {
+      const grouped = new Map<number, typeof filteredEvents>();
+      const month = currentDate.getMonth();
+      const year = currentDate.getFullYear();
+
+      for (const event of filteredEvents) {
+         if (event.date.getMonth() === month && event.date.getFullYear() === year) {
+            const day = event.date.getDate();
+            const dayEvents = grouped.get(day);
+            if (dayEvents) {
+               dayEvents.push(event);
+            } else {
+               grouped.set(day, [event]);
+            }
+         }
+      }
+      return grouped;
+   }, [filteredEvents, currentDate]);
+
+   const getEventsForDay = React.useCallback((day: number) => {
+      return eventsByDay.get(day) || [];
+   }, [eventsByDay]);
 
    const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
 
