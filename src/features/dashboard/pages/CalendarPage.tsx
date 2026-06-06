@@ -88,19 +88,42 @@ export const CalendarPage: React.FC = () => {
    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-   // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   // Filter Events (Memoized to prevent O(N) recalculation on every render)
+   const filteredEvents = React.useMemo(() => {
+      return EVENTS.filter(e => filter === 'all' || e.type === filter);
+   }, [filter]);
 
-   // Events for the current month view
+   // Group events by day for O(1) lookup instead of O(N) filter per day (O(N*D))
+   const eventsByDay = React.useMemo(() => {
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+      const map = new Map<number, typeof EVENTS>();
+
+      for (const e of filteredEvents) {
+         if (e.date.getMonth() === currentMonth && e.date.getFullYear() === currentYear) {
+            const day = e.date.getDate();
+            const existing = map.get(day);
+            if (existing) {
+               existing.push(e);
+            } else {
+               map.set(day, [e]);
+            }
+         }
+      }
+      return map;
+   }, [filteredEvents, currentDate]);
+
    const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
+      return eventsByDay.get(day) || [];
    };
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   // Memoize upcoming deadlines to avoid O(N log N) sorting on every render
+   const upcomingDeadlines = React.useMemo(() => {
+      const today = new Date(2024, 9, 20); // Mock "today" as Oct 20
+      return [...filteredEvents]
+         .filter(e => e.date >= today)
+         .sort((a, b) => a.date.getTime() - b.date.getTime());
+   }, [filteredEvents]);
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
