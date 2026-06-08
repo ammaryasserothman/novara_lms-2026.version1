@@ -1,0 +1,3 @@
+## 2025-03-09 - Calendar Event O(N*D) Render Loop Bottleneck
+**Learning:** Found a specific performance anti-pattern in `CalendarPage.tsx` where an O(N) array filter for events was being executed inside the O(D) loop for rendering calendar days, resulting in an O(N*D) algorithm (where N is the number of filtered events and D is days in month). This happens on every render.
+**Action:** Always pre-group calendar events using a Map inside a `useMemo` block keyed by day, reducing the inner loop retrieval from an O(N) array filter to an O(1) Map lookup per day, drastically avoiding redundant O(N*D) array iterations inside the render function.
