@@ -91,13 +91,31 @@ export const CalendarPage: React.FC = () => {
    // Filter Events
    const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
 
-   // Events for the current month view
+   // ⚡ Bolt: Group events by day to avoid O(N*D) filtering in render loop
+   // Reduces complexity from O(N * 31 days) to O(N) map build + O(1) lookups
+   const eventsByDay = React.useMemo(() => {
+      const map = new Map<number, typeof EVENTS>();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+
+      for (const event of EVENTS) {
+         if ((filter === 'all' || event.type === filter) &&
+             event.date.getMonth() === currentMonth &&
+             event.date.getFullYear() === currentYear) {
+            const day = event.date.getDate();
+            const existing = map.get(day);
+            if (existing) {
+               existing.push(event);
+            } else {
+               map.set(day, [event]);
+            }
+         }
+      }
+      return map;
+   }, [filter, currentDate]);
+
    const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
+      return eventsByDay.get(day) || [];
    };
 
    const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
