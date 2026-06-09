@@ -1,0 +1,3 @@
+## 2024-06-09 - CalendarPage Render Loop Bottleneck
+**Learning:** Found a critical performance bottleneck in `CalendarPage.tsx` where an O(N) array filter (`getEventsForDay`) was called repeatedly inside the render loop for every day of the month (D times). This resulted in an O(N*D) complexity that scales poorly as the number of events grows, causing noticeable slowdowns during component rendering and interactions (e.g. month navigation).
+**Action:** Always pre-group derived collections (like events by day) using a `Map` within a `React.useMemo` block to reduce retrieval from O(N) per iteration to an O(1) map lookup.
