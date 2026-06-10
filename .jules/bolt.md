@@ -1,0 +1,3 @@
+## 2024-10-24 - Calendar View Optimization
+**Learning:** Filtering an array of events (O(N)) for each day of the month (D times) inside a component render or within helper functions creates an O(N*D) computational overhead. As the event count grows, this can cause noticeable rendering lag, especially since React renders happen frequently.
+**Action:** When filtering relational collections across multiple view buckets (like days in a calendar), use `React.useMemo` to construct a `Map` that pre-groups the events by the bucket key (e.g., day of the month). This reduces the complexity from O(N*D) to O(N + D), replacing the expensive iterative filtering with an O(1) Map lookup per bucket.
