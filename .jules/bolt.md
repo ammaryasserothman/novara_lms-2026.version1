@@ -1,0 +1,3 @@
+## 2024-10-24 - Calendar Events O(N) Filter Optimization
+**Learning:** In the Calendar component, deriving an array of events per day using a filter in the render loop leads to an O(N*D) calculation, especially noticeable when many events exist. Even though filtering over `[...Array(daysInMonth)]` occurs on the client, it re-executes on every render (e.g. state changes like view toggle, current date).
+**Action:** Replace `filteredEvents.filter` inside the render cycle per-day with a pre-calculated `Map` wrapped in `useMemo`. This allows a single O(N) pass over the events array, mapping each date's day as a key, reducing the per-day render lookup to O(1).
