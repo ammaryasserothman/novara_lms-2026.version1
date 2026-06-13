@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
    ChevronLeft, ChevronRight, Calendar as CalendarIcon,
    Clock, CheckCircle2, AlertCircle, Video, FileText,
@@ -91,13 +91,26 @@ export const CalendarPage: React.FC = () => {
    // Filter Events
    const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
 
-   // Events for the current month view
+   // Pre-group events by day for the current month to avoid O(N*D) filtering in render
+   const eventsByDay = useMemo(() => {
+      const map = new Map<number, typeof EVENTS[0][]>();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+
+      for (const event of filteredEvents) {
+         if (event.date.getMonth() === currentMonth && event.date.getFullYear() === currentYear) {
+            const day = event.date.getDate();
+            if (!map.has(day)) {
+               map.set(day, []);
+            }
+            map.get(day)!.push(event);
+         }
+      }
+      return map;
+   }, [filteredEvents, currentDate]);
+
    const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
+      return eventsByDay.get(day) || [];
    };
 
    const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
