@@ -92,12 +92,20 @@ export const CalendarPage: React.FC = () => {
    const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
 
    // Events for the current month view
+   const eventsByDay = React.useMemo(() => {
+      const map = new Map<number, typeof EVENTS[0][]>();
+      filteredEvents.forEach(e => {
+         if (e.date.getMonth() === currentDate.getMonth() && e.date.getFullYear() === currentDate.getFullYear()) {
+            const day = e.date.getDate();
+            if (!map.has(day)) map.set(day, []);
+            map.get(day)!.push(e);
+         }
+      });
+      return map;
+   }, [filteredEvents, currentDate]);
+
    const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
+      return eventsByDay.get(day) || [];
    };
 
    const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
