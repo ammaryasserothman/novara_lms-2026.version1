@@ -89,18 +89,26 @@ export const CalendarPage: React.FC = () => {
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
    // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   const filteredEvents = React.useMemo(() => {
+      return EVENTS.filter(e => filter === 'all' || e.type === filter);
+   }, [filter]);
 
-   // Events for the current month view
-   const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
-   };
+   // Group events by day for O(1) lookup in the month view
+   const eventsByDay = React.useMemo(() => {
+      const map = new Map<number, typeof EVENTS[0][]>();
+      filteredEvents.forEach(e => {
+         if (e.date.getMonth() === currentDate.getMonth() && e.date.getFullYear() === currentDate.getFullYear()) {
+            const day = e.date.getDate();
+            if (!map.has(day)) map.set(day, []);
+            map.get(day)!.push(e);
+         }
+      });
+      return map;
+   }, [filteredEvents, currentDate]);
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   const upcomingDeadlines = React.useMemo(() => {
+      return [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   }, [filteredEvents]);
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
@@ -208,7 +216,7 @@ export const CalendarPage: React.FC = () => {
                      {[...Array(daysInMonth)].map((_, i) => {
                         const day = i + 1;
                         const isToday = day === 24 && currentDate.getMonth() === 9; // Mock today as Oct 24
-                        const dayEvents = getEventsForDay(day);
+                        const dayEvents = eventsByDay.get(day) || [];
 
                         return (
                            <div key={day} className={cn("bg-white p-2 min-h-[140px] group hover:bg-slate-50 transition-colors relative flex flex-col gap-1", isToday && "bg-novara-50/10")}>
