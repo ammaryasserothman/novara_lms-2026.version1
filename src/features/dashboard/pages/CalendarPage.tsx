@@ -88,19 +88,33 @@ export const CalendarPage: React.FC = () => {
    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-   // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   // Filter Events (Memoized)
+   const filteredEvents = React.useMemo(() => {
+      return EVENTS.filter(e => filter === 'all' || e.type === filter);
+   }, [filter]);
 
-   // Events for the current month view
-   const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
-   };
+   // Group events by day to avoid O(N) filtering inside render loop
+   const eventsByDay = React.useMemo(() => {
+      const map = new Map<number, typeof EVENTS>();
+      filteredEvents.forEach(event => {
+         if (event.date.getMonth() === currentDate.getMonth() && event.date.getFullYear() === currentDate.getFullYear()) {
+            const day = event.date.getDate();
+            if (!map.has(day)) map.set(day, []);
+            map.get(day)!.push(event);
+         }
+      });
+      return map;
+   }, [filteredEvents, currentDate]);
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   const getEventsForDay = React.useCallback((day: number) => {
+      return eventsByDay.get(day) || [];
+   }, [eventsByDay]);
+
+   const upcomingDeadlines = React.useMemo(() => {
+      return [...filteredEvents]
+         .sort((a, b) => a.date.getTime() - b.date.getTime())
+         .filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   }, [filteredEvents]);
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
@@ -169,10 +183,10 @@ export const CalendarPage: React.FC = () => {
 
                   <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 no-scrollbar">
                      <Filter size={16} className="text-slate-400 mr-2 shrink-0" />
-                     {['all', 'quiz', 'assignment', 'live'].map(f => (
+                     {(['all', 'quiz', 'assignment', 'live'] as const).map(f => (
                         <button
                            key={f}
-                           onClick={() => setFilter(f as 'all' | 'quiz' | 'assignment' | 'live')}
+                           onClick={() => setFilter(f)}
                            className={cn(
                               "px-3 py-1.5 rounded-full text-xs font-bold capitalize border transition-all whitespace-nowrap",
                               filter === f

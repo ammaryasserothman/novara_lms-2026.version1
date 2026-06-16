@@ -1,0 +1,3 @@
+## 2024-10-24 - Calendar Event Grouping
+**Learning:** Filtering arrays directly within React render loops, especially nested filtering for dates inside grid components, forces expensive O(N) evaluations for every day. By grouping those relational arrays once per data-change using a Map combined with `React.useMemo`, O(N) operations inside tight component loops are reduced to O(1) lookups.
+**Action:** When filtering or transforming relational collections based on context data in functional React components, extract the loop logic into a single-pass block using `useMemo` and pre-calculate relation mappings using a Map for O(1) lookups.
