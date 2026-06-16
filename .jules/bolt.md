@@ -1,0 +1,3 @@
+## 2024-10-24 - Calendar View O(N*D) Filtering Bottleneck
+**Learning:** Found a performance bottleneck in `CalendarPage.tsx` where filtering operations were recalculated inside a render loop for each day of the month (31 iterations). Using array `.filter()` inside the loop means the entire events array is traversed O(N) times per day D, resulting in O(N*D) complexity.
+**Action:** Pre-group events using a Map within a `React.useMemo` block keyed by day to reduce retrieval from an O(N) array filter to an O(1) map lookup per day, avoiding O(N*D) filtering inside render loops. Also memoized other derived state calculations like `upcomingDeadlines`.
