@@ -1,0 +1,3 @@
+## 2024-10-24 - [O(1) Map Lookups for React Component Loops]
+**Learning:** Filtering arrays directly inside render loops (like iterating days of a month and running `.filter` over all events for each day) creates an O(N*D) computational overhead that scales poorly with data size and triggers on every re-render.
+**Action:** When rendering calendar views or grids, pre-group events into a Map using `React.useMemo` keyed by the grid identifier (e.g., day number). This reduces retrieval from an O(N) array filter to an O(1) map lookup per iteration, significantly improving React rendering performance.
