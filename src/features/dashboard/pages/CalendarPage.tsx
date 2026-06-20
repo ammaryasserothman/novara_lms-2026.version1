@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
    ChevronLeft, ChevronRight, Calendar as CalendarIcon,
    Clock, CheckCircle2, AlertCircle, Video, FileText,
@@ -89,18 +89,35 @@ export const CalendarPage: React.FC = () => {
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
    // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   const filteredEvents = useMemo(() =>
+      EVENTS.filter(e => filter === 'all' || e.type === filter),
+   [filter]);
+
+   // Group events by day to replace O(N*D) filtering with O(N+D)
+   const eventsByDay = useMemo(() => {
+      const map = new Map<number, typeof EVENTS>();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+
+      filteredEvents.forEach(e => {
+         if (e.date.getMonth() === currentMonth && e.date.getFullYear() === currentYear) {
+            const day = e.date.getDate();
+            const existing = map.get(day) || [];
+            existing.push(e);
+            map.set(day, existing);
+         }
+      });
+      return map;
+   }, [filteredEvents, currentDate]);
 
    // Events for the current month view
    const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
+      return eventsByDay.get(day) || [];
    };
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   const upcomingDeadlines = useMemo(() =>
+      [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)),
+   [filteredEvents]); // Mock "today" as Oct 20
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
