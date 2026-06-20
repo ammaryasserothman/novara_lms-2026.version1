@@ -1,0 +1,3 @@
+## 2024-10-24 - Pre-Grouping Events with Maps Avoids O(N*D) Filter Loops
+**Learning:** When displaying calendar events in a grid (month view), running a `.filter()` inside the render loop for every single day results in an O(N*D) complexity, leading to unnecessary computation and performance bottlenecks as the event dataset grows.
+**Action:** When optimizing calendar views or similar multi-day/category groupings, always wrap the grouping logic in a `React.useMemo` block that pre-groups the events using a `Map` keyed by day. This reduces the retrieval cost from O(N) array filtering to an O(1) map lookup per day, avoiding O(N*D) processing during renders.
