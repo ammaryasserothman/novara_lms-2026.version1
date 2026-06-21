@@ -1,0 +1,3 @@
+## 2024-10-24 - Calendar Grid O(N*D) Filtering Overhead
+**Learning:** In the CalendarPage, iterating through 31 days and calling `.filter()` on an array of events inside the render loop creates an O(N*D) operation (where N is the number of events, and D is the days in the month). This causes unnecessary performance overhead during month view rendering, especially when navigating months.
+**Action:** Always pre-group date-based events into a `Map` (keyed by day or date string) using `useMemo` so that retrieving events for a specific day becomes an O(1) lookup, reducing the render complexity from O(N*D) to O(N+D).
