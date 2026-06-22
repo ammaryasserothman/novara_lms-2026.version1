@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useGlobal } from '../../../context/GlobalContext';
 import { useCart } from '../../../context/CartContext';
 import { Card } from '../../../components/ui/Card';
@@ -12,19 +12,37 @@ export const PricingPage: React.FC = () => {
     const navigate = useNavigate();
     const [filter, setFilter] = useState('All');
 
-    // Mock pricing data since it's not in the main data yet
-    const PRICED_COURSES = courses.map(c => ({
-        ...c,
-        price: 49.99 + (c.totalModules * 5), // dynamic mock price
-        originalPrice: 79.99 + (c.totalModules * 5),
-        features: ['Certificate of Completion', 'Lifetime Access', `${c.totalModules} Modules`, 'Project Files']
-    }));
+    // ⚡ Bolt: Performance optimization
+    // Separated memoization into two steps:
+    // 1. Compute PRICED_COURSES and categories only when 'courses' data changes.
+    //    Uses a single pass to minimize array allocations and loop iterations.
+    const { PRICED_COURSES, categories } = useMemo(() => {
+        const _priced = [];
+        const categorySet = new Set(['All']);
 
-    const categories = ['All', ...Array.from(new Set(courses.map(c => c.category)))];
+        for (let i = 0; i < courses.length; i++) {
+            const c = courses[i];
+            _priced.push({
+                ...c,
+                price: 49.99 + (c.totalModules * 5), // dynamic mock price
+                originalPrice: 79.99 + (c.totalModules * 5),
+                features: ['Certificate of Completion', 'Lifetime Access', `${c.totalModules} Modules`, 'Project Files']
+            });
+            categorySet.add(c.category);
+        }
 
-    const filteredCourses = filter === 'All'
-        ? PRICED_COURSES
-        : PRICED_COURSES.filter(c => c.category === filter);
+        return {
+            PRICED_COURSES: _priced,
+            categories: Array.from(categorySet)
+        };
+    }, [courses]);
+
+    // 2. Compute filtered result dependent on PRICED_COURSES and filter state.
+    //    This prevents recalculating all courses when just the filter changes.
+    const filteredCourses = useMemo(() => {
+        if (filter === 'All') return PRICED_COURSES;
+        return PRICED_COURSES.filter(c => c.category === filter);
+    }, [PRICED_COURSES, filter]);
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-600 pb-20">
