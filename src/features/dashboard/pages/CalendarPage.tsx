@@ -88,19 +88,36 @@ export const CalendarPage: React.FC = () => {
    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-   // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   // Filter Events (Memoized to prevent recalculation on unrelated re-renders)
+   const filteredEvents = React.useMemo(() => {
+      return EVENTS.filter(e => filter === 'all' || e.type === filter);
+   }, [filter]);
 
-   // Events for the current month view
+   // Group events by day to avoid O(N*D) filtering inside render loops (Performance Optimization)
+   const eventsByDay = React.useMemo(() => {
+      const map = new Map<number, typeof EVENTS[0][]>();
+      for (const e of filteredEvents) {
+         if (e.date.getMonth() === currentDate.getMonth() && e.date.getFullYear() === currentDate.getFullYear()) {
+            const day = e.date.getDate();
+            if (!map.has(day)) {
+               map.set(day, []);
+            }
+            map.get(day)!.push(e);
+         }
+      }
+      return map;
+   }, [filteredEvents, currentDate]);
+
    const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
+      return eventsByDay.get(day) || [];
    };
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   // Memoize expensive sort and filter operations (Performance Optimization)
+   const upcomingDeadlines = React.useMemo(() => {
+      return [...filteredEvents]
+         .sort((a, b) => a.date.getTime() - b.date.getTime())
+         .filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   }, [filteredEvents]);
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
