@@ -1,0 +1,3 @@
+## 2024-10-24 - Calendar View N*D Filtering Anti-pattern
+**Learning:** In feature pages involving calendar views (like `CalendarPage.tsx`), rendering a 31-day month by invoking an O(N) `.filter()` inside the loop for each day results in O(N * D) algorithmic complexity, which causes measurable lag when processing thousands of events.
+**Action:** Always pre-group date-based relational collections using a `Map` within a `React.useMemo` block keyed by day (or month). This shifts the work outside the render loop to an O(N) construction phase followed by O(1) lookups per day, drastically reducing redundant computations.
