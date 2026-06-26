@@ -1,0 +1,3 @@
+## 2024-10-24 - CalendarPage Array Filtering Bottleneck
+**Learning:** Performing multiple array `filter()` calls inside a rendering loop, especially nested ones like retrieving events per day from a monthly view (O(N*D) operations), causes severe performance degradation in React as datasets grow. The lack of memoization further exacerbates this by forcing recalculations on every render.
+**Action:** Always pre-group array items using a `Map` within a `React.useMemo` block keyed by the grouping criteria (e.g., day of the month). This reduces retrieval overhead from an O(N) array filter to an O(1) map lookup per iteration, and memoization ensures this grouping only occurs when underlying state or datasets change.
