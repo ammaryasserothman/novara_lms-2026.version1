@@ -1,0 +1,3 @@
+## 2024-05-19 - O(N*D) Calendar Render Loop Bottleneck
+**Learning:** Calling an array `.filter()` inside a component render loop for every day in a month creates an O(N*D) operation (where N is events, D is days). This causes significant performance degradation as the event list grows, especially since React renders multiple times.
+**Action:** Pre-group events by day using a `Map` within a `useMemo` hook. This reduces the per-day lookup to O(1) and overall filtering complexity to O(N), significantly improving render performance. Return a static empty array for empty days to maintain React reference stability.
