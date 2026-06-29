@@ -1,0 +1,3 @@
+## 2024-03-20 - [O(N^2) Array Filter inside Render Loop in Calendar]
+**Learning:** Found a classic performance anti-pattern in `CalendarPage.tsx`. The component renders 31 days, and for each day it calls `getEventsForDay(day)` which runs `.filter()` over the entire `EVENTS` array. This creates an O(N * D) operation (where N is events, D is days in month) inside the render loop.
+**Action:** Always check loop bodies inside render methods (like `Array.from({ length: daysInMonth }).map(...)`). If they are filtering a master list, the master list should be pre-grouped into a Map or Record via `useMemo` outside the render loop, reducing the inside-loop operation to O(1) property access.
