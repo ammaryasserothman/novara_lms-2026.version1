@@ -1,0 +1,4 @@
+
+## 2024-05-24 - Calendar Events O(N*D) Filtering Overhead
+**Learning:** Filtering a large events array on every day of the month inside the render loop results in an O(N*D) performance bottleneck, as seen in `CalendarPage.tsx`. Pre-calculating this inside a `useMemo` map lookup reduces it to O(1) per day. Additionally, directly returning an empty array `[]` within component renders forces React to unnecessarily trigger re-renders since it creates a new reference.
+**Action:** When filtering calendar views or timeline views by day, group events into a Map within a `useMemo` block keyed by day instead of repeatedly iterating the full events array. Create static constant fallbacks like `EMPTY_EVENTS = []` outside the component to preserve reference stability and prevent unnecessary React renders.
