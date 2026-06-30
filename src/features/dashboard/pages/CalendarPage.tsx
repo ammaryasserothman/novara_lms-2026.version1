@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
    ChevronLeft, ChevronRight, Calendar as CalendarIcon,
    Clock, CheckCircle2, AlertCircle, Video, FileText,
@@ -74,6 +74,8 @@ const getTypeStyles = (type: string) => {
    }
 };
 
+const EMPTY_EVENTS: typeof EVENTS = [];
+
 export const CalendarPage: React.FC = () => {
    const navigate = useNavigate();
    const [currentDate, setCurrentDate] = useState(new Date(2024, 9, 1)); // Start at Oct 2024 for demo
@@ -89,18 +91,39 @@ export const CalendarPage: React.FC = () => {
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
    // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   const filteredEvents = useMemo(() => {
+      return EVENTS.filter(e => filter === 'all' || e.type === filter);
+   }, [filter]);
 
-   // Events for the current month view
+   // Performance optimization: Pre-group events by day to avoid O(N*D) filtering in render loop
+   const eventsByDay = useMemo(() => {
+      const map = new Map<number, typeof EVENTS>();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+
+      for (const event of filteredEvents) {
+         if (event.date.getMonth() === currentMonth && event.date.getFullYear() === currentYear) {
+            const day = event.date.getDate();
+            if (!map.has(day)) {
+               map.set(day, []);
+            }
+            map.get(day)!.push(event);
+         }
+      }
+      return map;
+   }, [filteredEvents, currentDate]);
+
+   // Events for the current month view (O(1) lookup instead of O(N) filter)
    const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
+      return eventsByDay.get(day) || EMPTY_EVENTS;
    };
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   // Wrap sorted deadlines in useMemo to avoid O(N log N) sort on every render
+   const upcomingDeadlines = useMemo(() => {
+      return [...filteredEvents]
+         .sort((a, b) => a.date.getTime() - b.date.getTime())
+         .filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   }, [filteredEvents]);
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
