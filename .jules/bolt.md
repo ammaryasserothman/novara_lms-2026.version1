@@ -1,0 +1,3 @@
+## 2024-07-05 - Optimize Calendar Page Event Filtering
+**Learning:** In React components that render large grid views (like a month calendar), filtering a global array of events for each cell inside the render loop results in an O(N*D) complexity (where N is the number of events and D is the number of days). This creates unnecessary re-evaluations and recalculations on every render, which is a performance anti-pattern.
+**Action:** Use `React.useMemo` to pre-group events into a `Map` keyed by day (or date string). This transforms the O(N) array filter inside the render loop into an O(1) map lookup per day.
