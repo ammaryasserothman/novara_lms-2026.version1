@@ -1,0 +1,3 @@
+## 2024-11-20 - O(N*D) filtering inside React render loop
+**Learning:** Performing `Array.prototype.filter` inside a rendering loop to match days (e.g. `events.filter(...)` for each day in a month grid) leads to an O(N*D) time complexity where N is the number of items and D is the number of rendered items (e.g. 31 days). This causes massive performance bottlenecks as it recalculates the entire array for each calendar cell.
+**Action:** Always pre-group data using a `Map` within `React.useMemo` keyed by the iteration identifier (like day). This replaces O(N) array scans with O(1) lookups during the render phase. Define an empty fallback array outside the component `const EMPTY_EVENTS = [];` to preserve reference stability instead of returning `[]` inline.
