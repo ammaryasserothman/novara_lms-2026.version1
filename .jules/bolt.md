@@ -1,0 +1,3 @@
+## 2024-10-24 - Calendar Events Grouping Optimization
+**Learning:** Calendar filtering inside render loops causes an O(N*D) operation which can be optimized to O(N) by pre-grouping events using a Map inside `React.useMemo`. In calendar views with many events, iterating over the full list of events for each day of the month creates significant overhead, especially since React re-renders frequently.
+**Action:** Always pre-group collections (like events or data points) into O(1) lookups (like Maps or Objects keyed by ID, date, or category) within a `useMemo` block when they need to be accessed inside a render loop for multiple components (like days in a calendar).
