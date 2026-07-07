@@ -1,0 +1,3 @@
+## 2025-07-07 - Calendar Page Re-render Loop O(N) Array Filter Optimization
+**Learning:** Found a performance bottleneck in `src/features/dashboard/pages/CalendarPage.tsx`. The `getEventsForDay` function filters the `filteredEvents` array linearly (O(N)) *for every single day* inside the month grid rendering loop. For `daysInMonth` (~30), this results in O(30 * N) operations inside the render loop every time the component renders or the month changes. This is inefficient.
+**Action:** Pre-group events by day using a `Map` within a `React.useMemo` block. This reduces the retrieval operation from an O(N) array filter to an O(1) map lookup per day, drastically improving rendering performance. This is a common codebase-specific anti-pattern to look out for.

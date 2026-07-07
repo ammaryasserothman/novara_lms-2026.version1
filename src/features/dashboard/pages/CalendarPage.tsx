@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
    ChevronLeft, ChevronRight, Calendar as CalendarIcon,
    Clock, CheckCircle2, AlertCircle, Video, FileText,
@@ -74,6 +74,9 @@ const getTypeStyles = (type: string) => {
    }
 };
 
+
+const EMPTY_EVENTS: typeof EVENTS = [];
+
 export const CalendarPage: React.FC = () => {
    const navigate = useNavigate();
    const [currentDate, setCurrentDate] = useState(new Date(2024, 9, 1)); // Start at Oct 2024 for demo
@@ -89,15 +92,26 @@ export const CalendarPage: React.FC = () => {
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
    // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   const filteredEvents = useMemo(() => EVENTS.filter(e => filter === 'all' || e.type === filter), [filter]);
 
-   // Events for the current month view
+   // ⚡ Bolt: Performance optimization
+   // Events for the current month view are now pre-grouped by day in an O(N) pass,
+   // enabling O(1) lookups during the render loop (which runs 30+ times).
+   // This prevents O(N*D) filtering operations on every render.
+   const eventsByDay = useMemo(() => {
+      const map = new Map<number, typeof EVENTS>();
+      for (const e of filteredEvents) {
+         if (e.date.getMonth() === currentDate.getMonth() && e.date.getFullYear() === currentDate.getFullYear()) {
+            const day = e.date.getDate();
+            if (!map.has(day)) map.set(day, []);
+            map.get(day)!.push(e);
+         }
+      }
+      return map;
+   }, [filteredEvents, currentDate]);
+
    const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
+      return eventsByDay.get(day) || EMPTY_EVENTS;
    };
 
    const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
