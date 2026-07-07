@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
    ChevronLeft, ChevronRight, Calendar as CalendarIcon,
    Clock, CheckCircle2, AlertCircle, Video, FileText,
@@ -74,6 +74,8 @@ const getTypeStyles = (type: string) => {
    }
 };
 
+const EMPTY_EVENTS: typeof EVENTS = [];
+
 export const CalendarPage: React.FC = () => {
    const navigate = useNavigate();
    const [currentDate, setCurrentDate] = useState(new Date(2024, 9, 1)); // Start at Oct 2024 for demo
@@ -88,19 +90,34 @@ export const CalendarPage: React.FC = () => {
    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-   // Filter Events
-   const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+   // Memoize upcoming deadlines
+   const upcomingDeadlines = useMemo(() => {
+      const filteredEvents = EVENTS.filter(e => filter === 'all' || e.type === filter);
+      return filteredEvents
+         .sort((a, b) => a.date.getTime() - b.date.getTime())
+         .filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   }, [filter]);
 
-   // Events for the current month view
-   const getEventsForDay = (day: number) => {
-      return filteredEvents.filter(e =>
-         e.date.getDate() === day &&
-         e.date.getMonth() === currentDate.getMonth() &&
-         e.date.getFullYear() === currentDate.getFullYear()
-      );
-   };
+   // Group events by day to avoid O(N*D) filtering inside render loop
+   const eventsByDay = useMemo(() => {
+      const map = new Map<number, typeof EVENTS>();
+      for (const e of EVENTS) {
+         if (filter === 'all' || e.type === filter) {
+            if (e.date.getMonth() === currentDate.getMonth() && e.date.getFullYear() === currentDate.getFullYear()) {
+               const day = e.date.getDate();
+               let dayEvents = map.get(day);
+               if (!dayEvents) {
+                  dayEvents = [];
+                  map.set(day, dayEvents);
+               }
+               dayEvents.push(e);
+            }
+         }
+      }
+      return map;
+   }, [filter, currentDate]);
 
-   const upcomingDeadlines = [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).filter(e => e.date >= new Date(2024, 9, 20)); // Mock "today" as Oct 20
+   const getEventsForDay = (day: number) => eventsByDay.get(day) || EMPTY_EVENTS;
 
    return (
       <div className="space-y-8 font-sans text-slate-600 max-w-7xl mx-auto min-h-screen pb-20">
